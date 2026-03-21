@@ -61,6 +61,11 @@ class NetrunnerTracker:
         # works for Android builds and some desktop window managers.
         p.window.icon = "/icon.png"
 
+        # Track if we're on mobile — panels stack vertically instead of
+        # side-by-side because phone screens are too narrow for two panels.
+        self._is_mobile = p.platform in (ft.PagePlatform.ANDROID,
+                                         ft.PagePlatform.IOS)
+
         # Window constraints only apply on desktop — Flet ignores them on
         # Android, but the guard prevents spurious log warnings.
         if p.platform in (ft.PagePlatform.WINDOWS,
@@ -142,7 +147,12 @@ class NetrunnerTracker:
         # ── Panels (rebuilt on active player change) ──────────────────────────
         # We store the outer Row so we can replace its children when the
         # active player changes — panels rebuild cheaply.
-        self._panels_row = ft.Row(spacing=12, vertical_alignment=ft.CrossAxisAlignment.START)
+        # On mobile, panels stack vertically (phone screens too narrow for
+        # side-by-side).  On desktop, they sit in a Row.
+        if self._is_mobile:
+            self._panels_container = ft.Column(spacing=12)
+        else:
+            self._panels_container = ft.Row(spacing=12, vertical_alignment=ft.CrossAxisAlignment.START)
 
         # ── End Turn button ───────────────────────────────────────────────────
         self._end_turn_btn_label  = ft.Text(
@@ -275,7 +285,7 @@ class NetrunnerTracker:
 
         # ── Panels (rebuild when active player changes so highlighting is fresh)
         corp_is_active   = s.active_player == "corp"
-        self._panels_row.controls = [
+        self._panels_container.controls = [
             self._build_corp_panel(active=corp_is_active),
             self._build_runner_panel(active=not corp_is_active),
         ]
@@ -872,7 +882,7 @@ class NetrunnerTracker:
                     self._turn_banner,
                     self._winner_banner,
                     self._build_agenda_section(),
-                    self._panels_row,
+                    self._panels_container,
                     actions_row,
                     log_panel,
                 ],

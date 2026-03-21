@@ -39,16 +39,16 @@ TEXT_PRIMARY   = "#ccdae8"
 TEXT_SECONDARY = "#48606e"
 
 # ── Asset paths (relative to assets/ directory) ──────────────────────────────
-# Reusing the NSG official game symbols rather than hand-drawing icons
-# means players immediately recognise them from their physical cards.
-ASSET_CLICK       = "/click.svg"
-ASSET_CLICK_SPENT = "/click_spent.svg"
-ASSET_CREDIT      = "/credit.svg"
-ASSET_TAG         = "/tag.svg"
-ASSET_CORE_DAMAGE = "/core_damage.svg"
-ASSET_BAD_PUB     = "/bad_pub.svg"
-ASSET_AGENDA      = "/agenda.svg"
-ASSET_HAND        = "/hand.svg"    # HQ icon — represents cards in hand (grip)
+# PNG instead of SVG — SVG tinting via SRC_IN doesn't render on Android.
+# PNGs with SRC_IN tinting work identically on all platforms.
+ASSET_CLICK       = "/click.png"
+ASSET_CLICK_SPENT = "/click_spent.png"
+ASSET_CREDIT      = "/credit.png"
+ASSET_TAG         = "/tag.png"
+ASSET_CORE_DAMAGE = "/core_damage.png"
+ASSET_BAD_PUB     = "/bad_pub.png"
+ASSET_AGENDA      = "/agenda.png"
+ASSET_HAND        = "/hand.png"
 
 # ── Game symbols (unicode fallbacks / text labels) ────────────────────────────
 SYM_TURN      = "↺"
