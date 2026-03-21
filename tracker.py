@@ -100,19 +100,6 @@ class NetrunnerTracker:
         self._corp_credits_text = ft.Text(
             "5", size=26, weight=ft.FontWeight.BOLD, color=theme.CORP_ACCENT,
         )
-        self._draw_glyph = ft.Text(
-            theme.SYM_DRAW, size=20,
-            color=theme.TEXT_SECONDARY,
-            text_align=ft.TextAlign.CENTER,
-        )
-        self._corp_draw_btn = ft.Container(
-            width=38, height=38, border_radius=6,
-            bgcolor=theme.PANEL_BG,
-            border=ft.Border.all(1, theme.PANEL_BORDER),
-            alignment=ft.Alignment.CENTER,
-            content=self._draw_glyph,
-            tooltip="Tap once Corp has done the mandatory draw",
-        )
         self._corp_bad_pub_text = ft.Text(
             "0", size=26, weight=ft.FontWeight.BOLD, color=theme.BAD_PUB_COLOR,
         )
@@ -263,18 +250,6 @@ class NetrunnerTracker:
             f"{s.runner_clicks} / {GameState.RUNNER_CLICKS_PER_TURN} remaining"
         )
 
-        # ── Mandatory draw ────────────────────────────────────────────────────
-        if s.corp_drew:
-            self._corp_draw_btn.bgcolor = theme.CORP_DIM
-            self._corp_draw_btn.border  = ft.Border.all(1, theme.CORP_ACCENT)
-            self._draw_glyph.value      = theme.SYM_DRAW_DONE
-            self._draw_glyph.color      = theme.CORP_ACCENT
-        else:
-            self._corp_draw_btn.bgcolor = theme.PANEL_BG
-            self._corp_draw_btn.border  = ft.Border.all(1, theme.PANEL_BORDER)
-            self._draw_glyph.value      = theme.SYM_DRAW
-            self._draw_glyph.color      = theme.TEXT_SECONDARY
-
         # ── Corp stats ────────────────────────────────────────────────────────
         self._corp_credits_text.value  = str(s.corp_credits)
         self._corp_bad_pub_text.value  = str(s.corp_bad_pub)
@@ -312,7 +287,7 @@ class NetrunnerTracker:
             self._winner_banner.bgcolor = theme.CORP_DIM
             self._winner_banner.border  = ft.Border.all(1, theme.CORP_ACCENT)
             self._winner_banner.content = ft.Text(
-                f"{theme.SYM_AGENDA}  CORPORATION WINS  {theme.SYM_AGENDA}",
+                "CORPORATION WINS",
                 size=20, weight=ft.FontWeight.BOLD,
                 color=theme.CORP_ACCENT, text_align=ft.TextAlign.CENTER,
             )
@@ -321,7 +296,7 @@ class NetrunnerTracker:
             self._winner_banner.bgcolor = theme.RUNNER_DIM
             self._winner_banner.border  = ft.Border.all(1, theme.RUNNER_ACCENT)
             self._winner_banner.content = ft.Text(
-                f"{theme.SYM_AGENDA}  RUNNER WINS  {theme.SYM_AGENDA}",
+                "RUNNER WINS",
                 size=20, weight=ft.FontWeight.BOLD,
                 color=theme.RUNNER_ACCENT, text_align=ft.TextAlign.CENTER,
             )
@@ -498,10 +473,6 @@ class NetrunnerTracker:
         self._log_list.update()
         self._log_count_text.update()
 
-    def _on_toggle_draw(self, e) -> None:
-        self.state.toggle_mandatory_draw()
-        self.refresh()
-
     def _on_end_turn(self, e) -> None:
         was_corp = self.state.active_player == "corp"
         prev_round = self.state.round
@@ -560,27 +531,13 @@ class NetrunnerTracker:
         """
         s = self.state
 
-        draw_row = ft.Container(
-            content=ft.Row(
-                [
-                    ft.Text("MANDATORY DRAW", size=9, color=theme.TEXT_SECONDARY),
-                    ft.GestureDetector(
-                        content=self._corp_draw_btn,
-                        on_tap=self._on_toggle_draw,
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                spacing=10,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-        )
-
         corp_is_active = active
 
         clicks_section = ft.Container(
             content=ft.Column(
                 [
-                    ui.section_label("CLICKS", theme.CORP_ACCENT),
+                    # "draw first" hint replaces the old mandatory draw toggle
+                    ui.section_label("CLICKS  ·  draw first", theme.CORP_ACCENT),
                     self._corp_clicks_row,
                     ft.Row(
                         [
@@ -599,7 +556,6 @@ class NetrunnerTracker:
         )
 
         return ui.panel("CORP", theme.CORP_ACCENT, [
-            draw_row,
             clicks_section,
             ui.divider(),
             ui.credit_row(
@@ -628,10 +584,7 @@ class NetrunnerTracker:
         hand_row = ft.Container(
             content=ft.Row(
                 [
-                    ft.Text(
-                        theme.SYM_HAND, size=16, color=theme.TEXT_SECONDARY,
-                        width=24, text_align=ft.TextAlign.CENTER,
-                    ),
+                    ui.nsg_icon(theme.ASSET_HAND, 20, theme.TEXT_SECONDARY),
                     ft.Text("Hand", size=11, color=theme.TEXT_SECONDARY, width=62),
                     self._runner_hand_text,
                     ft.Text("5 − brain", size=10, color=theme.TEXT_SECONDARY, italic=True),
@@ -719,10 +672,10 @@ class NetrunnerTracker:
             padding=ft.Padding.symmetric(horizontal=16, vertical=12),
             content=ft.Column(
                 [
-                    # Header
+                    # Header — NSG agenda icon instead of unicode stars
                     ft.Row(
                         [
-                            ft.Text(theme.SYM_AGENDA, size=14, color=theme.AGENDA_GOLD),
+                            ui.nsg_icon(theme.ASSET_AGENDA, 16, theme.AGENDA_GOLD),
                             ft.Text(
                                 "AGENDA SCORE",
                                 size=11,
@@ -732,7 +685,7 @@ class NetrunnerTracker:
                                     letter_spacing=2.0,
                                 ),
                             ),
-                            ft.Text(theme.SYM_AGENDA, size=14, color=theme.AGENDA_GOLD),
+                            ui.nsg_icon(theme.ASSET_AGENDA, 16, theme.AGENDA_GOLD),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
                         spacing=8,
