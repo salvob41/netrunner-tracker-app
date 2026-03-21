@@ -10,7 +10,7 @@ Whose turn it is drives the entire visual state:
   - End Turn button label reflects the current player
 """
 
-import threading
+import asyncio
 
 import flet as ft
 
@@ -34,9 +34,10 @@ class NetrunnerTracker:
         self.log = GameLog()
         self.log.record(0, "game", theme.SYM_TURN, "Game started")
 
-        # Credit debounce state
+        # Credit debounce state — uses page.run_task() with async sleep
+        # (same pattern as the working MTG life counter)
         self._pending_credit = {"corp": 0, "runner": 0}
-        self._credit_timer: dict = {"corp": None, "runner": None}
+        self._credit_task: dict = {"corp": None, "runner": None}
 
         # Log panel starts expanded
         self._log_expanded = True
@@ -429,60 +430,73 @@ class NetrunnerTracker:
     def _credit_adjuster(self, player: str, delta: int):
         """
         Adjusts credits immediately but debounces the log entry.
-        Rapid taps accumulate into one entry like "+5 credits → 8¢".
-        A delta badge shows the pending change while the timer runs.
+        Uses page.run_task() + async sleep (same pattern as the working
+        MTG life counter) instead of threading.Timer.
         """
         field = f"{player}_credits"
         delta_ref = (self._corp_credits_delta if player == "corp"
                      else self._runner_credits_delta)
         timer_bar = (self._corp_credits_timer_bar if player == "corp"
                      else self._runner_credits_timer_bar)
+        credit_ref = (self._corp_credits_text if player == "corp"
+                      else self._runner_credits_text)
 
         def handle(e):
             # Immediate state update
             self.state.adjust(field, delta, 0, 99)
             self._pending_credit[player] += delta
 
+            # Update credit value display immediately
+            credit_ref.value = str(getattr(self.state, field))
+
             # Update delta badge
             p = self._pending_credit[player]
             if p == 0:
                 delta_ref.visible = False
+                delta_ref.opacity = 0
             else:
                 delta_ref.value = f"+{p}" if p > 0 else str(p)
                 delta_ref.color = theme.NEON_GREEN if p > 0 else theme.DANGER_RED
                 delta_ref.visible = True
+                delta_ref.opacity = 1
 
             # Show timer bar
             timer_bar.visible = True
 
-            # Cancel existing timer
-            if self._credit_timer[player]:
-                self._credit_timer[player].cancel()
+            # Push only the changed widgets — no full panel rebuild
+            credit_ref.update()
+            delta_ref.update()
+            timer_bar.update()
 
-            # Lightweight commit: hide badge + update log only.
-            # Does NOT call refresh() — avoids expensive full panel
-            # rebuild from the timer thread.  Just pushes the visibility
-            # change and new log entry via page.update().
-            def commit():
-                d = self._pending_credit[player]
-                if d != 0:
-                    val = getattr(self.state, field)
-                    sign = "+" if d > 0 else ""
-                    self.log.record(
-                        self.state.round, player, theme.SYM_CREDIT,
-                        f"{sign}{d} credits → {val}¢",
-                    )
-                self._pending_credit[player] = 0
-                delta_ref.visible = False
-                timer_bar.visible = False
-                self._refresh_log_inline()
-                self.page.update()
-
-            self._credit_timer[player] = threading.Timer(0.3, commit)
-            self._credit_timer[player].start()
-
-            self.refresh()
+            # Cancel existing debounce task and start a new one
+            if self._credit_task[player]:
+                self._credit_task[player].cancel()
+            self._credit_task[player] = self.page.run_task(
+                self._credit_commit, player, delta_ref, timer_bar, field,
+            )
         return handle
+
+    async def _credit_commit(self, player, delta_ref, timer_bar, field):
+        """Async debounce: sleep then commit the batched credit change."""
+        await asyncio.sleep(0.8)
+        d = self._pending_credit[player]
+        if d != 0:
+            val = getattr(self.state, field)
+            sign = "+" if d > 0 else ""
+            self.log.record(
+                self.state.round, player, theme.SYM_CREDIT,
+                f"{sign}{d} credits → {val}¢",
+            )
+        self._pending_credit[player] = 0
+        delta_ref.visible = False
+        delta_ref.opacity = 0
+        timer_bar.visible = False
+        # Update only the changed widgets + log
+        delta_ref.update()
+        timer_bar.update()
+        self._refresh_log_inline()
+        self._log_list.update()
+        self._log_count_text.update()
 
     def _on_toggle_draw(self, e) -> None:
         self.state.toggle_mandatory_draw()
@@ -518,9 +532,9 @@ class NetrunnerTracker:
         self.state.reset()
         self._pending_credit = {"corp": 0, "runner": 0}
         for player in ("corp", "runner"):
-            if self._credit_timer[player]:
-                self._credit_timer[player].cancel()
-                self._credit_timer[player] = None
+            if self._credit_task[player]:
+                self._credit_task[player].cancel()
+                self._credit_task[player] = None
         self.log.clear()
         self.log.record(0, "game", theme.SYM_TURN, "Game reset")
         self.refresh()
