@@ -48,13 +48,11 @@ ASSET_TAG         = "/tag.svg"
 ASSET_CORE_DAMAGE = "/core_damage.svg"
 ASSET_BAD_PUB     = "/bad_pub.svg"
 ASSET_AGENDA      = "/agenda.svg"
+ASSET_HAND        = "/hand.svg"    # HQ icon — represents cards in hand (grip)
 
 # ── Game symbols (unicode fallbacks / text labels) ────────────────────────────
 SYM_TURN      = "↺"
-SYM_DRAW      = "⊞"
-SYM_DRAW_DONE = "☑"
-SYM_AGENDA    = "★"
-SYM_HAND      = "⎇"
+SYM_AGENDA  = "⬡"   # agenda point (hexagon, matching the NSG icon shape)
 SYM_CLICK   = "◆"   # click spent
 SYM_CREDIT  = "¢"   # credit change
 SYM_TAG     = "⊕"   # tag added/removed
