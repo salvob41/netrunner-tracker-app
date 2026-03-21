@@ -36,30 +36,32 @@ def nsg_icon(asset_path: str, size: int, color: str) -> ft.Image:
 
 # ── Click tokens ──────────────────────────────────────────────────────────────
 
-def click_token(filled: bool, color: str, on_tap=None) -> ft.Control:
+def click_token(filled: bool, color: str, on_tap=None, size: int = 48) -> ft.Control:
     """
     One click token using the official NSG click symbol.
 
     When on_tap is provided, the token is wrapped in a GestureDetector
     for tap interaction.  When None (inactive player), it returns a
     plain Container — no tap handler, used as display-only.
+    size: container size in px (48 desktop, 40 mobile).
     """
     asset = theme.ASSET_CLICK if filled else theme.ASSET_CLICK_SPENT
     icon_color = color if filled else ft.Colors.with_opacity(0.30, color)
     bg = ft.Colors.with_opacity(0.15, color) if filled else "transparent"
     border_color = ft.Colors.with_opacity(0.7, color) if filled else ft.Colors.with_opacity(0.22, color)
+    icon_size = int(size * 0.55)
 
     token_container = ft.Container(
-        width=48,
-        height=48,
+        width=size,
+        height=size,
         border_radius=6,
         bgcolor=bg,
         border=ft.Border.all(2, border_color),
         alignment=ft.Alignment.CENTER,
         content=ft.Image(
             src=asset,
-            width=26,
-            height=26,
+            width=icon_size,
+            height=icon_size,
             fit=ft.BoxFit.CONTAIN,
             color=icon_color,
             color_blend_mode=ft.BlendMode.SRC_IN,
@@ -75,6 +77,7 @@ def click_tokens_row(
     maximum: int,
     color: str,
     on_token_tap=None,
+    token_size: int = 48,
 ) -> list:
     """
     Builds the list of click tokens for a player's clicks section.
@@ -87,6 +90,7 @@ def click_tokens_row(
             filled=(i < current),
             color=color,
             on_tap=on_token_tap(i, i < current) if on_token_tap else None,
+            size=token_size,
         )
         for i in range(maximum)
     ]

@@ -53,7 +53,6 @@ class NetrunnerTracker:
         p = self.page
         p.title      = "NETRUNNER TRACKER"
         p.bgcolor    = theme.BG_DARK
-        p.padding    = 16
         p.theme_mode = ft.ThemeMode.DARK
 
         # Window icon — PNG for cross-platform compatibility.
@@ -65,6 +64,9 @@ class NetrunnerTracker:
         # side-by-side because phone screens are too narrow for two panels.
         self._is_mobile = p.platform in (ft.PagePlatform.ANDROID,
                                          ft.PagePlatform.IOS)
+
+        # Tighter padding on mobile to maximize screen real estate
+        p.padding = 8 if self._is_mobile else 16
 
         # Window constraints only apply on desktop — Flet ignores them on
         # Android, but the guard prevents spurious log warnings.
@@ -248,13 +250,17 @@ class NetrunnerTracker:
 
         # ── Click tokens ──────────────────────────────────────────────────────
         # Active player gets tappable tokens; inactive player gets display-only
+        # Smaller tokens on mobile (40px) to fit phone screens
+        tsz = 40 if self._is_mobile else 48
         self._corp_clicks_row.controls = ui.click_tokens_row(
             s.corp_clicks, 3, theme.CORP_ACCENT,
             self._corp_token_tap if cp else None,
+            token_size=tsz,
         )
         self._runner_clicks_row.controls = ui.click_tokens_row(
             s.runner_clicks, 4, theme.RUNNER_ACCENT,
             self._runner_token_tap if not cp else None,
+            token_size=tsz,
         )
 
         # ── Click counts ─────────────────────────────────────────────────
