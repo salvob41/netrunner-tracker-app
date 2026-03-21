@@ -56,6 +56,10 @@ class NetrunnerTracker:
         p.padding    = 16
         p.theme_mode = ft.ThemeMode.DARK
 
+        # Window icon — the NSG click symbol is the most recognisable
+        # Netrunner glyph.  Flet resolves paths relative to assets_dir.
+        p.window.icon = theme.ASSET_CLICK
+
         # Window constraints only apply on desktop — Flet ignores them on
         # Android, but the guard prevents spurious log warnings.
         if p.platform in (ft.PagePlatform.WINDOWS,
