@@ -459,9 +459,10 @@ class NetrunnerTracker:
             if self._credit_timer[player]:
                 self._credit_timer[player].cancel()
 
-            # Schedule log commit — uses full refresh() instead of just
-            # _refresh_log() so the panel rebuild picks up the visibility
-            # change on the delta badge and timer bar reliably.
+            # Lightweight commit: hide badge + update log only.
+            # Does NOT call refresh() — avoids expensive full panel
+            # rebuild from the timer thread.  Just pushes the visibility
+            # change and new log entry via page.update().
             def commit():
                 d = self._pending_credit[player]
                 if d != 0:
@@ -471,11 +472,11 @@ class NetrunnerTracker:
                         self.state.round, player, theme.SYM_CREDIT,
                         f"{sign}{d} credits → {val}¢",
                     )
-                # Always clean up badge + bar
                 self._pending_credit[player] = 0
                 delta_ref.visible = False
                 timer_bar.visible = False
-                self.refresh()
+                self._refresh_log_inline()
+                self.page.update()
 
             self._credit_timer[player] = threading.Timer(0.3, commit)
             self._credit_timer[player].start()
