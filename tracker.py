@@ -56,9 +56,10 @@ class NetrunnerTracker:
         p.padding    = 16
         p.theme_mode = ft.ThemeMode.DARK
 
-        # Window icon — the NSG click symbol is the most recognisable
-        # Netrunner glyph.  Flet resolves paths relative to assets_dir.
-        p.window.icon = theme.ASSET_CLICK
+        # Window icon — PNG for cross-platform compatibility.
+        # macOS dock icon can't be changed (Flet limitation), but this
+        # works for Android builds and some desktop window managers.
+        p.window.icon = "/icon.png"
 
         # Window constraints only apply on desktop — Flet ignores them on
         # Android, but the guard prevents spurious log warnings.
@@ -591,7 +592,7 @@ class NetrunnerTracker:
                     ui.nsg_icon(theme.ASSET_HAND, 20, theme.TEXT_SECONDARY),
                     ft.Text("Hand", size=11, color=theme.TEXT_SECONDARY, width=62),
                     self._runner_hand_text,
-                    ft.Text("5 − brain", size=10, color=theme.TEXT_SECONDARY, italic=True),
+                    ft.Text("5 − core", size=10, color=theme.TEXT_SECONDARY, italic=True),
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -642,10 +643,10 @@ class NetrunnerTracker:
             ),
             ui.stat_row(
                 theme.ASSET_CORE_DAMAGE, theme.PURPLE_ACCENT,
-                "Brain", self._runner_brain_text, theme.PURPLE_ACCENT,
-                self._stat_adjuster("runner_brain", -1, symbol=theme.SYM_BRAIN, label="brain",
+                "Core", self._runner_brain_text, theme.PURPLE_ACCENT,
+                self._stat_adjuster("runner_brain", -1, symbol=theme.SYM_BRAIN, label="core dmg",
                                     suffix_fn=lambda s: f"(hand={s.runner_hand_size})"),
-                self._stat_adjuster("runner_brain",  1, symbol=theme.SYM_BRAIN, label="brain",
+                self._stat_adjuster("runner_brain",  1, symbol=theme.SYM_BRAIN, label="core dmg",
                                     suffix_fn=lambda s: f"(hand={s.runner_hand_size})"),
             ),
             ui.stat_row(

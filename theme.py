@@ -56,6 +56,6 @@ SYM_AGENDA  = "⬡"   # agenda point (hexagon, matching the NSG icon shape)
 SYM_CLICK   = "◆"   # click spent
 SYM_CREDIT  = "¢"   # credit change
 SYM_TAG     = "⊕"   # tag added/removed
-SYM_BRAIN   = "⊗"   # brain damage
+SYM_BRAIN   = "⊗"   # core damage (formerly brain damage)
 SYM_NET     = "⚡"   # net damage
 SYM_BAD_PUB = "☢"   # bad publicity
