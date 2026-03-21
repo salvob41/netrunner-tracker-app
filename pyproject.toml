@@ -1,0 +1,12 @@
+[project]
+name = "netrunner-tracker"
+version = "1.0.0"
+description = "Game state tracker for Android: Netrunner"
+requires-python = ">=3.11"
+dependencies = ["flet"]
+
+[tool.flet.app]
+path = "src"
+
+[tool.flet.android]
+adaptive_icon_background = "#07090d"
