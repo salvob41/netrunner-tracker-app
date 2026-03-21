@@ -173,16 +173,27 @@ def _pip(filled: bool, color: str) -> ft.Container:
 
 def agenda_pip_row(corp_score: int, runner_score: int) -> ft.Row:
     """
-    Renders  ●●●○○○○  |  ●●○○○○○  — Corp pips on the left,
-    Runner pips on the right, with a vertical bar divider between them.
+    Renders a tug-of-war pip display where both sides fill from the center:
 
-    This layout was chosen over a single progress bar because:
-    - Each pip maps to one real agenda card, so the count is unambiguous
-    - The `---|----` shape the user requested (left fill vs right fill)
-      is immediately readable without needing a numeric label
+        ○○○○●●●|●●○○○○○
+             ←Corp  Runner→
+
+    Corp pips fill RIGHT-to-LEFT (toward the divider from the left edge).
+    Runner pips fill LEFT-to-RIGHT (toward the divider from the right edge).
+    This makes the scored points cluster around the center divider,
+    visually showing the tension between the two factions.
     """
-    corp_pips   = [_pip(i < corp_score,   theme.CORP_ACCENT)   for i in range(7)]
-    runner_pips = [_pip(i < runner_score, theme.RUNNER_ACCENT) for i in range(7)]
+    # Corp: pips 0-6, filled from the RIGHT (index 6 fills first)
+    # So pip at index i is filled if i >= (7 - corp_score)
+    corp_pips = [
+        _pip(i >= (7 - corp_score), theme.CORP_ACCENT) for i in range(7)
+    ]
+
+    # Runner: pips 0-6, filled from the LEFT (index 0 fills first)
+    # So pip at index i is filled if i < runner_score
+    runner_pips = [
+        _pip(i < runner_score, theme.RUNNER_ACCENT) for i in range(7)
+    ]
 
     divider = ft.Container(
         width=2,
