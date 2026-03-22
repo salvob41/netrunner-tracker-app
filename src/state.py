@@ -45,16 +45,18 @@ class GameState:
         self.runner_credits = self.STARTING_CREDITS
         self.runner_agenda  = 0
         self.runner_tags    = 0            # each tag lets Corp retaliate (SYNC, etc.)
-        self.runner_brain   = 0            # permanent -1 hand size per token
-        self.runner_net     = 0            # net damage dealt this game
+        self.runner_brain   = 0            # permanent -1 hand size per token (core damage)
+        self.runner_max_hand_bonus = 0     # bonus to max hand size from card effects
+        self.runner_mu      = 4            # memory units (how many programs can be installed)
+        self.runner_link    = 0            # link strength for traces
 
     # ── Computed properties ───────────────────────────────────────────────────
 
     @property
-    def runner_hand_size(self) -> int:
-        # Brain damage is the only permanent card-disadvantage effect in
-        # standard Netrunner — clamped at 0 so the display never goes negative.
-        return max(0, self.BASE_HAND_SIZE - self.runner_brain)
+    def runner_max_hand_size(self) -> int:
+        # Base 5 minus core damage plus any card-effect bonuses.
+        # Clamped at 0 so the display never goes negative.
+        return max(0, self.BASE_HAND_SIZE - self.runner_brain + self.runner_max_hand_bonus)
 
     @property
     def winner(self) -> str | None:
