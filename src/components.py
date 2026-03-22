@@ -159,6 +159,78 @@ def stat_row(
     )
 
 
+# ── Compact stat (half-width, for side-by-side layout) ───────────────────
+
+def compact_stat(
+    asset_path: str,
+    asset_color: str,
+    label: str,
+    value_ref: ft.Text,
+    color: str,
+    on_decrement,
+    on_increment,
+) -> ft.Container:
+    """
+    Half-width stat with icon, value, and +/− buttons.
+    Designed to sit two-per-row for a tighter layout.
+    """
+    return ft.Container(
+        expand=True,
+        content=ft.Row(
+            [
+                nsg_icon(asset_path, 18, asset_color),
+                ft.Text(label, size=10, color=theme.TEXT_SECONDARY),
+                value_ref,
+                ft.Row(
+                    [
+                        stepper("−", on_decrement, color),
+                        stepper("+", on_increment, color),
+                    ],
+                    spacing=3,
+                ),
+            ],
+            spacing=4,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=ft.Padding.symmetric(horizontal=6, vertical=4),
+    )
+
+
+# ── Hand size row (current / max with dual controls) ────────────────────
+
+def hand_row(
+    asset_path: str,
+    value_ref: ft.Text,
+    color: str,
+    on_decrement,
+    on_increment,
+) -> ft.Container:
+    """
+    Hand size display with +/− controls.
+    Shows the max hand size (5 - core damage + bonuses).
+    """
+    return ft.Container(
+        content=ft.Row(
+            [
+                nsg_icon(asset_path, 20, color),
+                ft.Text("Hand Size", size=11, color=theme.TEXT_SECONDARY),
+                value_ref,
+                ft.Row(
+                    [
+                        stepper("−", on_decrement, color),
+                        stepper("+", on_increment, color),
+                    ],
+                    spacing=4,
+                ),
+            ],
+            spacing=6,
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=ft.Padding.symmetric(horizontal=8, vertical=5),
+    )
+
+
 # ── Agenda pips ───────────────────────────────────────────────────────────────
 
 def _pip(filled: bool, color: str) -> ft.Container:
@@ -173,6 +245,20 @@ def _pip(filled: bool, color: str) -> ft.Container:
         bgcolor=color if filled else "transparent",
         border=ft.Border.all(2, color if filled else ft.Colors.with_opacity(0.28, color)),
     )
+
+
+def agenda_pips_split(corp_score: int, runner_score: int) -> tuple[list, list]:
+    """
+    Returns (corp_pips, runner_pips) as separate lists for the compact
+    layout where each side's score sits above its own pips.
+    """
+    corp_pips = [
+        _pip(i >= (7 - corp_score), theme.CORP_ACCENT) for i in range(7)
+    ]
+    runner_pips = [
+        _pip(i < runner_score, theme.RUNNER_ACCENT) for i in range(7)
+    ]
+    return corp_pips, runner_pips
 
 
 def agenda_pip_row(corp_score: int, runner_score: int) -> ft.Row:
@@ -204,12 +290,12 @@ def agenda_pip_row(corp_score: int, runner_score: int) -> ft.Row:
         height=20,
         bgcolor=ft.Colors.with_opacity(0.35, theme.TEXT_SECONDARY),
         border_radius=1,
-        margin=ft.Margin.symmetric(horizontal=8),
+        margin=ft.Margin.symmetric(horizontal=4),
     )
 
     return ft.Row(
         [*corp_pips, divider, *runner_pips],
-        spacing=5,
+        spacing=3,
         alignment=ft.MainAxisAlignment.CENTER,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
@@ -391,6 +477,17 @@ def log_entry_row(entry) -> ft.Container:
     }
     color = player_colors.get(entry.player, theme.TEXT_SECONDARY)
 
+    # Use PNG asset if available, otherwise fall back to text symbol
+    asset_info = theme.SYM_ASSET_MAP.get(entry.symbol)
+    if asset_info:
+        asset_path, asset_color = asset_info
+        icon_widget = nsg_icon(asset_path, 14, asset_color or color)
+    else:
+        icon_widget = ft.Text(
+            entry.symbol, size=12, color=color,
+            text_align=ft.TextAlign.CENTER,
+        )
+
     return ft.Container(
         content=ft.Row(
             [
@@ -400,12 +497,10 @@ def log_entry_row(entry) -> ft.Container:
                     color=ft.Colors.with_opacity(0.6, color),
                     width=64,
                 ),
-                ft.Text(
-                    entry.symbol,
-                    size=12,
-                    color=color,
+                ft.Container(
                     width=20,
-                    text_align=ft.TextAlign.CENTER,
+                    alignment=ft.Alignment.CENTER,
+                    content=icon_widget,
                 ),
                 ft.Text(
                     entry.message,

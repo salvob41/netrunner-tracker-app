@@ -39,6 +39,10 @@ class NetrunnerTracker:
         self._pending_credit = {"corp": 0, "runner": 0}
         self._credit_task: dict = {"corp": None, "runner": None}
 
+        # Generic stat debounce state — keyed by attr name
+        self._pending_stat: dict = {}   # attr → accumulated delta
+        self._stat_task: dict = {}      # attr → asyncio task
+
         # Log panel starts expanded
         self._log_expanded = True
 
@@ -112,9 +116,6 @@ class NetrunnerTracker:
         self._corp_credits_text = ft.Text(
             "5", size=26, weight=ft.FontWeight.BOLD, color=theme.CORP_ACCENT,
         )
-        self._corp_bad_pub_text = ft.Text(
-            "0", size=26, weight=ft.FontWeight.BOLD, color=theme.BAD_PUB_COLOR,
-        )
 
         # ── Runner ────────────────────────────────────────────────────────────
         self._runner_clicks_row   = ft.Row(spacing=6)
@@ -122,28 +123,47 @@ class NetrunnerTracker:
             "5", size=26, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
         )
         self._runner_tags_text  = ft.Text(
-            "0", size=26, weight=ft.FontWeight.BOLD, color=theme.AGENDA_GOLD,
+            "0", size=22, weight=ft.FontWeight.BOLD, color=theme.AGENDA_GOLD,
         )
         self._runner_brain_text = ft.Text(
-            "0", size=26, weight=ft.FontWeight.BOLD, color=theme.PURPLE_ACCENT,
+            "0", size=22, weight=ft.FontWeight.BOLD, color=theme.PURPLE_ACCENT,
         )
-        self._runner_net_text   = ft.Text(
-            "0", size=26, weight=ft.FontWeight.BOLD, color=theme.DANGER_RED,
+        self._runner_hand_text = ft.Text(
+            "5", size=22, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
         )
-        self._runner_hand_text  = ft.Text(
-            "5", size=18, weight=ft.FontWeight.BOLD, color=theme.TEXT_SECONDARY,
+
+        # ── Optional stats (toggleable) ─────────────────────────────────────
+        self._corp_bad_pub_text = ft.Text(
+            "0", size=22, weight=ft.FontWeight.BOLD, color=theme.BAD_PUB_COLOR,
         )
+        self._runner_mu_text = ft.Text(
+            "4", size=22, weight=ft.FontWeight.BOLD, color=theme.MU_COLOR,
+        )
+        self._runner_link_text = ft.Text(
+            "0", size=22, weight=ft.FontWeight.BOLD, color=theme.LINK_COLOR,
+        )
+        # Toggle state for optional rows
+        self._show_bad_pub = False
+        self._show_mu = False
+        self._show_link = False
 
         # ── Agenda ───────────────────────────────────────────────────────────
         self._corp_agenda_text   = ft.Text(
-            "0", size=40, weight=ft.FontWeight.BOLD, color=theme.CORP_ACCENT,
+            "0", size=24, weight=ft.FontWeight.BOLD, color=theme.CORP_ACCENT,
         )
         self._runner_agenda_text = ft.Text(
-            "0", size=40, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
+            "0", size=24, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
         )
         self._agenda_pip_row = ft.Row(
             spacing=5,
             alignment=ft.MainAxisAlignment.CENTER,
+        )
+        # Split pips for compact layout (score above each side)
+        self._agenda_pip_row_corp = ft.Row(
+            spacing=3, alignment=ft.MainAxisAlignment.CENTER,
+        )
+        self._agenda_pip_row_runner = ft.Row(
+            spacing=3, alignment=ft.MainAxisAlignment.CENTER,
         )
 
         # ── Panels (rebuilt on active player change) ──────────────────────────
@@ -279,8 +299,9 @@ class NetrunnerTracker:
         self._runner_credits_text.value = str(s.runner_credits)
         self._runner_tags_text.value    = str(s.runner_tags)
         self._runner_brain_text.value   = str(s.runner_brain)
-        self._runner_net_text.value     = str(s.runner_net)
-        self._runner_hand_text.value    = str(s.runner_hand_size)
+        self._runner_hand_text.value    = str(s.runner_max_hand_size)
+        self._runner_mu_text.value      = str(s.runner_mu)
+        self._runner_link_text.value    = str(s.runner_link)
 
         # ── Agenda pips ───────────────────────────────────────────────────────
         self._corp_agenda_text.value   = str(s.corp_agenda)
@@ -288,6 +309,10 @@ class NetrunnerTracker:
         self._agenda_pip_row.controls  = ui.agenda_pip_row(
             s.corp_agenda, s.runner_agenda,
         ).controls
+        # Split pips for compact layout
+        corp_pips, runner_pips = ui.agenda_pips_split(s.corp_agenda, s.runner_agenda)
+        self._agenda_pip_row_corp.controls = corp_pips
+        self._agenda_pip_row_runner.controls = runner_pips
 
         # ── Panels (rebuild when active player changes so highlighting is fresh)
         corp_is_active   = s.active_player == "corp"
@@ -363,23 +388,37 @@ class NetrunnerTracker:
                        symbol: str = "·", label: str = "",
                        suffix_fn=None):
         """
-        Like _adjuster but writes an immediate log entry.
-        Player is inferred from the attr prefix (corp_ or runner_).
-        suffix_fn: optional callable(state) -> str for extra context.
+        Debounced stat adjuster: updates state immediately but batches
+        the log entry (800ms) so rapid taps produce one log line.
         """
         def handle(e):
             self.state.adjust(attr, delta, min_val, max_val)
+            self._pending_stat[attr] = self._pending_stat.get(attr, 0) + delta
+            self.refresh()
+            # Cancel existing debounce and start new one
+            if attr in self._stat_task and self._stat_task[attr]:
+                self._stat_task[attr].cancel()
+            self._stat_task[attr] = self.page.run_task(
+                self._stat_commit, attr, symbol, label, suffix_fn,
+            )
+        return handle
+
+    async def _stat_commit(self, attr, symbol, label, suffix_fn):
+        """Async debounce: sleep then commit the batched stat change."""
+        await asyncio.sleep(0.8)
+        d = self._pending_stat.get(attr, 0)
+        if d != 0:
             val = getattr(self.state, attr)
             player = "corp" if attr.startswith("corp_") else "runner"
-            sign = "+" if delta > 0 else ""
-            msg = f"{sign}{delta} {label} → {val}"
+            sign = "+" if d > 0 else ""
+            msg = f"{sign}{d} {label} → {val}"
             if suffix_fn:
                 msg += f" {suffix_fn(self.state)}"
-            self.log.record(
-                self.state.round, player, symbol, msg,
-            )
-            self.refresh()
-        return handle
+            self.log.record(self.state.round, player, symbol, msg)
+        self._pending_stat[attr] = 0
+        self._refresh_log_inline()
+        self._log_list.update()
+        self._log_count_text.update()
 
     def _corp_token_tap(self, index: int, filled: bool):
         """
@@ -422,6 +461,51 @@ class NetrunnerTracker:
     def _on_refill_runner(self, e) -> None:
         self.state.runner_clicks = GameState.RUNNER_CLICKS_PER_TURN
         self.refresh()
+
+    def _toggle_pill(self, label: str, active: bool, key: str, color: str) -> ft.Container:
+        """Small pill button to toggle optional stat visibility."""
+        return ft.Container(
+            content=ft.Text(
+                f"{'−' if active else '+'} {label}",
+                size=9,
+                color=color if active else ft.Colors.with_opacity(0.4, color),
+            ),
+            bgcolor=ft.Colors.with_opacity(0.15 if active else 0.05, color),
+            border=ft.Border.all(1, ft.Colors.with_opacity(0.4 if active else 0.15, color)),
+            border_radius=10,
+            padding=ft.Padding.symmetric(horizontal=8, vertical=3),
+            on_click=self._on_toggle_stat(key),
+        )
+
+    def _on_toggle_stat(self, key: str):
+        """Factory: returns handler that toggles an optional stat's visibility."""
+        def handle(e):
+            attr = f"_show_{key}"
+            setattr(self, attr, not getattr(self, attr))
+            self.refresh()
+        return handle
+
+    def _core_damage_adjuster(self, delta: int):
+        """
+        Core damage adjusts runner_brain AND reduces max hand size.
+        Debounced like other stats.
+        """
+        return self._stat_adjuster(
+            "runner_brain", delta, 0, 99,
+            symbol=theme.SYM_BRAIN, label="core dmg",
+            suffix_fn=lambda s: f"(hand={s.runner_max_hand_size})",
+        )
+
+    def _max_hand_adjuster(self, delta: int):
+        """
+        Adjusts max hand size bonus from card effects (e.g. Public Sympathy).
+        Debounced like other stats.
+        """
+        return self._stat_adjuster(
+            "runner_max_hand_bonus", delta, -5, 10,
+            symbol=theme.SYM_HAND, label="hand bonus",
+            suffix_fn=lambda s: f"(hand={s.runner_max_hand_size})",
+        )
 
     def _credit_adjuster(self, player: str, delta: int):
         """
@@ -527,6 +611,11 @@ class NetrunnerTracker:
             if self._credit_task[player]:
                 self._credit_task[player].cancel()
                 self._credit_task[player] = None
+        for task in self._stat_task.values():
+            if task:
+                task.cancel()
+        self._pending_stat.clear()
+        self._stat_task.clear()
         self.log.clear()
         self.log.record(0, "game", theme.SYM_TURN, "Game reset")
         self.refresh()
@@ -576,7 +665,7 @@ class NetrunnerTracker:
             opacity=1.0 if corp_is_active else 0.35,
         )
 
-        return ui.panel("CORP", theme.CORP_ACCENT, [
+        controls = [
             clicks_section,
             ui.divider(),
             ui.credit_row(
@@ -587,35 +676,26 @@ class NetrunnerTracker:
                 self._credit_adjuster("corp", -1),
                 self._credit_adjuster("corp",  1),
             ),
-            ui.stat_row(
+        ]
+        if self._show_bad_pub:
+            controls.append(ui.stat_row(
                 theme.ASSET_BAD_PUB, theme.BAD_PUB_COLOR,
                 "Bad Pub", self._corp_bad_pub_text, theme.BAD_PUB_COLOR,
                 self._stat_adjuster("corp_bad_pub", -1, symbol=theme.SYM_BAD_PUB, label="bad pub"),
                 self._stat_adjuster("corp_bad_pub",  1, symbol=theme.SYM_BAD_PUB, label="bad pub"),
-            ),
-        ], active=active)
+            ))
+        # Toggle pill for optional stats
+        controls.append(ft.Row(
+            [self._toggle_pill("Bad Pub", self._show_bad_pub, "bad_pub", theme.BAD_PUB_COLOR)],
+            alignment=ft.MainAxisAlignment.END,
+        ))
+        return ui.panel("CORP", theme.CORP_ACCENT, controls, active=active)
 
     def _build_runner_panel(self, active: bool) -> ft.Container:
         """
-        Runner panel: clicks, credits, damage counters, computed hand size.
-        All damage types are Runner-only — the Corp inflicts them, the Runner
-        accumulates them.  Brain damage is permanent (reduces hand size),
-        so hand_size is a computed property on GameState.
+        Runner panel: clicks, credits, tags + core damage (compact), hand size.
+        Optional stats (MU, Link) can be toggled on via small pills.
         """
-        hand_row = ft.Container(
-            content=ft.Row(
-                [
-                    ui.nsg_icon(theme.ASSET_HAND, 20, theme.TEXT_SECONDARY),
-                    ft.Text("Hand", size=11, color=theme.TEXT_SECONDARY, width=62),
-                    self._runner_hand_text,
-                    ft.Text("5 − core", size=10, color=theme.TEXT_SECONDARY, italic=True),
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-            padding=ft.Padding.symmetric(horizontal=8, vertical=4),
-        )
-
         runner_is_active = active
 
         clicks_section = ft.Container(
@@ -639,7 +719,80 @@ class NetrunnerTracker:
             opacity=1.0 if runner_is_active else 0.35,
         )
 
-        return ui.panel("RUNNER", theme.RUNNER_ACCENT, [
+        # Tags and Core Damage side by side (compact)
+        compact_row = ft.Row(
+            [
+                ui.compact_stat(
+                    theme.ASSET_TAG, theme.AGENDA_GOLD,
+                    "Tags", self._runner_tags_text, theme.AGENDA_GOLD,
+                    self._stat_adjuster("runner_tags", -1, symbol=theme.SYM_TAG, label="tag"),
+                    self._stat_adjuster("runner_tags",  1, symbol=theme.SYM_TAG, label="tag"),
+                ),
+                ft.Container(
+                    width=1, height=28,
+                    bgcolor=ft.Colors.with_opacity(0.15, theme.TEXT_SECONDARY),
+                ),
+                ui.compact_stat(
+                    theme.ASSET_CORE_DAMAGE, theme.PURPLE_ACCENT,
+                    "Core", self._runner_brain_text, theme.PURPLE_ACCENT,
+                    self._core_damage_adjuster(-1),
+                    self._core_damage_adjuster(1),
+                ),
+            ],
+            spacing=4,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
+        # Hand size (just max hand size)
+        hand = ui.hand_row(
+            theme.ASSET_HAND,
+            self._runner_hand_text,
+            theme.RUNNER_ACCENT,
+            self._max_hand_adjuster(-1),
+            self._max_hand_adjuster(1),
+        )
+
+        # Optional stats (MU, Link) — only shown when toggled on
+        optional_controls = []
+        if self._show_mu:
+            optional_controls.append(ui.compact_stat(
+                theme.ASSET_MU, theme.MU_COLOR,
+                "MU", self._runner_mu_text, theme.MU_COLOR,
+                self._stat_adjuster("runner_mu", -1, symbol=theme.SYM_MU, label="MU"),
+                self._stat_adjuster("runner_mu",  1, symbol=theme.SYM_MU, label="MU"),
+            ))
+        if self._show_link:
+            optional_controls.append(ui.compact_stat(
+                theme.ASSET_LINK, theme.LINK_COLOR,
+                "Link", self._runner_link_text, theme.LINK_COLOR,
+                self._stat_adjuster("runner_link", -1, symbol=theme.SYM_LINK, label="link"),
+                self._stat_adjuster("runner_link",  1, symbol=theme.SYM_LINK, label="link"),
+            ))
+
+        optional_row = None
+        if optional_controls:
+            if len(optional_controls) == 2:
+                optional_row = ft.Row(
+                    [optional_controls[0],
+                     ft.Container(width=1, height=28,
+                                  bgcolor=ft.Colors.with_opacity(0.15, theme.TEXT_SECONDARY)),
+                     optional_controls[1]],
+                    spacing=4, vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                )
+            else:
+                optional_row = ft.Row(optional_controls, spacing=4)
+
+        # Toggle pills for optional stats
+        toggle_row = ft.Row(
+            [
+                self._toggle_pill("MU", self._show_mu, "mu", theme.MU_COLOR),
+                self._toggle_pill("Link", self._show_link, "link", theme.LINK_COLOR),
+            ],
+            spacing=4,
+            alignment=ft.MainAxisAlignment.END,
+        )
+
+        controls = [
             clicks_section,
             ui.divider(),
             ui.credit_row(
@@ -651,127 +804,94 @@ class NetrunnerTracker:
                 self._credit_adjuster("runner",  1),
             ),
             ui.divider(),
-            ui.stat_row(
-                theme.ASSET_TAG, theme.AGENDA_GOLD,
-                "Tags", self._runner_tags_text, theme.AGENDA_GOLD,
-                self._stat_adjuster("runner_tags", -1, symbol=theme.SYM_TAG, label="tag"),
-                self._stat_adjuster("runner_tags",  1, symbol=theme.SYM_TAG, label="tag"),
-            ),
-            ui.stat_row(
-                theme.ASSET_CORE_DAMAGE, theme.PURPLE_ACCENT,
-                "Core", self._runner_brain_text, theme.PURPLE_ACCENT,
-                self._stat_adjuster("runner_brain", -1, symbol=theme.SYM_BRAIN, label="core dmg",
-                                    suffix_fn=lambda s: f"(hand={s.runner_hand_size})"),
-                self._stat_adjuster("runner_brain",  1, symbol=theme.SYM_BRAIN, label="core dmg",
-                                    suffix_fn=lambda s: f"(hand={s.runner_hand_size})"),
-            ),
-            ui.stat_row(
-                theme.ASSET_CORE_DAMAGE, theme.DANGER_RED,
-                "Net Dmg", self._runner_net_text, theme.DANGER_RED,
-                self._stat_adjuster("runner_net", -1, symbol=theme.SYM_NET, label="net dmg"),
-                self._stat_adjuster("runner_net",  1, symbol=theme.SYM_NET, label="net dmg"),
-            ),
+            compact_row,
             ui.divider(),
-            hand_row,
-        ], active=active)
+            hand,
+        ]
+        if optional_row:
+            controls.append(optional_row)
+        controls.append(toggle_row)
+
+        return ui.panel("RUNNER", theme.RUNNER_ACCENT, controls, active=active)
 
     # ── Agenda section ────────────────────────────────────────────────────────
 
     def _build_agenda_section(self) -> ft.Container:
         """
-        Agenda scoreboard with pip display.
+        Compact agenda scoreboard: two side-by-side columns, each with
+        score number centered above its pips, steppers below.
 
-        The pip row (●●●○○○○  |  ●○○○○○○) gives players an immediate
-        visual of how far each faction is from winning without needing to
-        read numbers — modelled on physical agenda-tracking dials.
-        The numeric scores stay alongside for precision.
+        Layout:
+                ★ AGENDA
+             0       |       0
+          ○○○○○○○    |    ○○○○○○○
+           [−][+]    |     [−][+]
         """
+        def _side(score_ref, pip_row_ref, color):
+            return ft.Column(
+                [
+                    score_ref,
+                    pip_row_ref,
+                    ft.Row(
+                        [
+                            ui.stepper("−", self._stat_adjuster(
+                                f"{'corp' if color == theme.CORP_ACCENT else 'runner'}_agenda",
+                                -1, 0, 7, symbol=theme.SYM_AGENDA, label="agenda",
+                                suffix_fn=lambda s: "pts"), color),
+                            ui.stepper("+", self._stat_adjuster(
+                                f"{'corp' if color == theme.CORP_ACCENT else 'runner'}_agenda",
+                                1, 0, 7, symbol=theme.SYM_AGENDA, label="agenda",
+                                suffix_fn=lambda s: "pts"), color),
+                        ],
+                        spacing=4,
+                        alignment=ft.MainAxisAlignment.CENTER,
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=2,
+                expand=True,
+            )
+
         return ft.Container(
             bgcolor=theme.PANEL_BG,
             border_radius=10,
             border=ft.Border.all(1, ft.Colors.with_opacity(0.45, theme.AGENDA_GOLD)),
-            padding=ft.Padding.symmetric(horizontal=16, vertical=12),
+            padding=ft.Padding.symmetric(horizontal=10, vertical=6),
             content=ft.Column(
                 [
-                    # Header — NSG agenda icon instead of unicode stars
+                    # Label
                     ft.Row(
                         [
-                            ui.nsg_icon(theme.ASSET_AGENDA, 16, theme.AGENDA_GOLD),
+                            ui.nsg_icon(theme.ASSET_AGENDA, 12, theme.AGENDA_GOLD),
                             ft.Text(
-                                "AGENDA SCORE",
-                                size=11,
-                                color=theme.AGENDA_GOLD,
+                                "AGENDA",
+                                size=9,
+                                color=ft.Colors.with_opacity(0.6, theme.AGENDA_GOLD),
                                 style=ft.TextStyle(
                                     weight=ft.FontWeight.BOLD,
                                     letter_spacing=2.0,
                                 ),
                             ),
-                            ui.nsg_icon(theme.ASSET_AGENDA, 16, theme.AGENDA_GOLD),
                         ],
+                        spacing=4,
                         alignment=ft.MainAxisAlignment.CENTER,
-                        spacing=8,
                     ),
-                    ft.Divider(
-                        height=1,
-                        color=ft.Colors.with_opacity(0.2, theme.AGENDA_GOLD),
-                    ),
-                    # Scores + pip row
+                    # Two columns with divider
                     ft.Row(
                         [
-                            # Corp score + controls
-                            ft.Column(
-                                [
-                                    ft.Text("CORP", size=10, color=theme.CORP_ACCENT),
-                                    self._corp_agenda_text,
-                                    ft.Row(
-                                        [
-                                            ui.stepper("−", self._stat_adjuster("corp_agenda", -1, 0, 7, symbol=theme.SYM_AGENDA, label="agenda", suffix_fn=lambda s: "pts"), theme.CORP_ACCENT),
-                                            ui.stepper("+", self._stat_adjuster("corp_agenda",  1, 0, 7, symbol=theme.SYM_AGENDA, label="agenda", suffix_fn=lambda s: "pts"), theme.CORP_ACCENT),
-                                        ],
-                                        spacing=4,
-                                    ),
-                                ],
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                spacing=4,
+                            _side(self._corp_agenda_text, self._agenda_pip_row_corp, theme.CORP_ACCENT),
+                            ft.Container(
+                                width=2, height=55,
+                                bgcolor=ft.Colors.with_opacity(0.25, theme.AGENDA_GOLD),
+                                border_radius=1,
                             ),
-                            # Pip display — this is the visual centrepiece
-                            ft.Column(
-                                [
-                                    ft.Text(
-                                        "FIRST TO 7",
-                                        size=9,
-                                        color=theme.TEXT_SECONDARY,
-                                        text_align=ft.TextAlign.CENTER,
-                                    ),
-                                    self._agenda_pip_row,
-                                ],
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                spacing=8,
-                                expand=True,
-                            ),
-                            # Runner score + controls
-                            ft.Column(
-                                [
-                                    ft.Text("RUNNER", size=10, color=theme.RUNNER_ACCENT),
-                                    self._runner_agenda_text,
-                                    ft.Row(
-                                        [
-                                            ui.stepper("−", self._stat_adjuster("runner_agenda", -1, 0, 7, symbol=theme.SYM_AGENDA, label="agenda", suffix_fn=lambda s: "pts"), theme.RUNNER_ACCENT),
-                                            ui.stepper("+", self._stat_adjuster("runner_agenda",  1, 0, 7, symbol=theme.SYM_AGENDA, label="agenda", suffix_fn=lambda s: "pts"), theme.RUNNER_ACCENT),
-                                        ],
-                                        spacing=4,
-                                    ),
-                                ],
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                spacing=4,
-                            ),
+                            _side(self._runner_agenda_text, self._agenda_pip_row_runner, theme.RUNNER_ACCENT),
                         ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        spacing=6,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                 ],
-                spacing=10,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=4,
             ),
         )
 
@@ -881,6 +1001,7 @@ class NetrunnerTracker:
             spacing=0,
         )
 
+        sp = 6 if self._is_mobile else 10
         self.page.add(
             ft.Column(
                 [
@@ -892,7 +1013,7 @@ class NetrunnerTracker:
                     actions_row,
                     log_panel,
                 ],
-                spacing=10,
+                spacing=sp,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 scroll=ft.ScrollMode.AUTO,
                 expand=True,

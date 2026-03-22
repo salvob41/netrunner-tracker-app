@@ -33,6 +33,8 @@ NEON_GREEN    = "#00f0a0"  # positive actions (end turn)
 DANGER_RED    = "#ff1e3a"  # destructive actions (reset)
 PURPLE_ACCENT = "#b560ff"  # brain damage is psychological
 BAD_PUB_COLOR = "#1dbd55"  # green — bad publicity gives the Runner an advantage
+MU_COLOR      = "#20c0e0"  # cyan — memory units
+LINK_COLOR    = "#40d080"  # teal-green — link strength
 
 # ── Text ─────────────────────────────────────────────────────────────────────
 TEXT_PRIMARY   = "#ccdae8"
@@ -49,13 +51,30 @@ ASSET_CORE_DAMAGE = "/core_damage.png"
 ASSET_BAD_PUB     = "/bad_pub.png"
 ASSET_AGENDA      = "/agenda.png"
 ASSET_HAND        = "/hand.png"
+ASSET_MU          = "/mu.png"
+ASSET_LINK        = "/link.png"
 
-# ── Game symbols (unicode fallbacks / text labels) ────────────────────────────
-SYM_TURN      = "↺"
-SYM_AGENDA  = "⬡"   # agenda point (hexagon, matching the NSG icon shape)
+# ── Game symbols (used as log keys + fallback display) ────────────────────────
+SYM_TURN    = "↺"
+SYM_AGENDA  = "⬡"   # agenda point
 SYM_CLICK   = "◆"   # click spent
 SYM_CREDIT  = "¢"   # credit change
 SYM_TAG     = "⊕"   # tag added/removed
-SYM_BRAIN   = "⊗"   # core damage (formerly brain damage)
-SYM_NET     = "⚡"   # net damage
+SYM_BRAIN   = "⊗"   # core damage
+SYM_HAND    = "✋"   # hand size change
 SYM_BAD_PUB = "☢"   # bad publicity
+SYM_MU      = "⬢"   # memory units
+SYM_LINK    = "⟐"   # link strength
+
+# ── Symbol → asset mapping (for log entries to use same icons as UI) ──────
+SYM_ASSET_MAP = {
+    SYM_AGENDA:  (ASSET_AGENDA,      AGENDA_GOLD),
+    SYM_CLICK:   (ASSET_CLICK,       None),       # color set per player
+    SYM_CREDIT:  (ASSET_CREDIT,      None),       # color set per player
+    SYM_TAG:     (ASSET_TAG,         AGENDA_GOLD),
+    SYM_BRAIN:   (ASSET_CORE_DAMAGE, PURPLE_ACCENT),
+    SYM_HAND:    (ASSET_HAND,        None),
+    SYM_BAD_PUB: (ASSET_BAD_PUB,     BAD_PUB_COLOR),
+    SYM_MU:      (ASSET_MU,          MU_COLOR),
+    SYM_LINK:    (ASSET_LINK,        LINK_COLOR),
+}
