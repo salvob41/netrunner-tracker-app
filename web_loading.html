@@ -1,0 +1,59 @@
+<style>
+  body {
+    margin: 0;
+    background: #07090d;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+  }
+  .loader {
+    text-align: center;
+  }
+  .title {
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 8px;
+    color: #00f0a0;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: #48606e;
+    margin-bottom: 32px;
+  }
+  .bar-track {
+    width: 200px;
+    height: 3px;
+    background: #1a2535;
+    border-radius: 2px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 40%;
+    background: #00f0a0;
+    border-radius: 2px;
+    animation: slide 1.2s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+  .status {
+    margin-top: 14px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #48606e;
+  }
+</style>
+<div class="loader">
+  <div class="title">NETRUNNER</div>
+  <div class="subtitle">G A M E &nbsp; T R A C K E R</div>
+  <div class="bar-track"><div class="bar-fill"></div></div>
+  <div class="status">INITIALIZING...</div>
+</div>
