@@ -34,6 +34,9 @@ jobs:
       - name: Build web
         run: flet build web --base-url /netrunner-tracker-app/
 
+      - name: Inject loading screen
+        run: sed -i 's|<body>|<body>\n'"$(cat web_loading.html | tr '\n' ' ')"'|' build/web/index.html
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
