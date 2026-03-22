@@ -69,6 +69,7 @@ Desktop.ini
 # Tooling (local overrides)
 *.local.json
 .superpowers/
+docs/superpowers/
 NSG-Visual-Assets/
 NSG-Visual-Assets_v1.5.zip
 __pycache__/
