@@ -36,6 +36,10 @@ BAD_PUB_COLOR = "#1dbd55"  # green — bad publicity gives the Runner an advanta
 MU_COLOR      = "#20c0e0"  # cyan — memory units
 LINK_COLOR    = "#40d080"  # teal-green — link strength
 
+# ── Agenda bar dimensions ────────────────────────────────────────────────────
+AGENDA_BAR_WIDTH     = 40   # px — width of the vertical sidebar
+AGENDA_BAR_DEAD_ZONE = 8    # px — no-tap zone around the center divider
+
 # ── Text ─────────────────────────────────────────────────────────────────────
 TEXT_PRIMARY   = "#ccdae8"
 TEXT_SECONDARY = "#48606e"
