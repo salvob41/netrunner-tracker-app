@@ -10,3 +10,4 @@ path = "src"
 
 [tool.flet.android]
 adaptive_icon_background = "#07090d"
+permissions = ["android.permission.WAKE_LOCK"]

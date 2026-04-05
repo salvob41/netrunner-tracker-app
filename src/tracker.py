@@ -66,7 +66,16 @@ class NetrunnerTracker:
 
         self._is_mobile = p.platform in (ft.PagePlatform.ANDROID,
                                          ft.PagePlatform.IOS)
-        p.padding = 8 if self._is_mobile else 16
+        # Top padding pushes below Android/iOS status bar
+        p.padding = ft.Padding(left=8, right=8, bottom=8,
+                               top=36 if self._is_mobile else 16)
+
+        # Keep screen on during play
+        if self._is_mobile:
+            async def enable_wakelock():
+                wakelock = ft.Wakelock()
+                await wakelock.enable()
+            p.run_task(enable_wakelock)
 
         if p.platform in (ft.PagePlatform.WINDOWS,
                           ft.PagePlatform.MACOS,
@@ -104,31 +113,31 @@ class NetrunnerTracker:
         # ── Corp ─────────────────────────────────────────────────────────
         self._corp_clicks_row   = ft.Row(spacing=5)
         self._corp_credits_text = ft.Text(
-            "5", size=24, weight=ft.FontWeight.BOLD, color=theme.CORP_ACCENT,
+            "5", size=28, weight=ft.FontWeight.BOLD, color=theme.CORP_ACCENT,
         )
         self._corp_bad_pub_text = ft.Text(
-            "0", size=24, weight=ft.FontWeight.BOLD, color=theme.BAD_PUB_COLOR,
+            "0", size=28, weight=ft.FontWeight.BOLD, color=theme.BAD_PUB_COLOR,
         )
 
         # ── Runner ───────────────────────────────────────────────────────
         self._runner_clicks_row   = ft.Row(spacing=5)
         self._runner_credits_text = ft.Text(
-            "5", size=24, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
+            "5", size=28, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
         )
         self._runner_tags_text  = ft.Text(
-            "0", size=24, weight=ft.FontWeight.BOLD, color=theme.AGENDA_GOLD,
+            "0", size=28, weight=ft.FontWeight.BOLD, color=theme.AGENDA_GOLD,
         )
         self._runner_brain_text = ft.Text(
-            "0", size=24, weight=ft.FontWeight.BOLD, color=theme.PURPLE_ACCENT,
+            "0", size=28, weight=ft.FontWeight.BOLD, color=theme.PURPLE_ACCENT,
         )
         self._runner_hand_text = ft.Text(
-            "5", size=24, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
+            "5", size=28, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
         )
         self._runner_mu_text = ft.Text(
-            "4", size=24, weight=ft.FontWeight.BOLD, color=theme.MU_COLOR,
+            "4", size=28, weight=ft.FontWeight.BOLD, color=theme.MU_COLOR,
         )
         self._runner_link_text = ft.Text(
-            "0", size=24, weight=ft.FontWeight.BOLD, color=theme.LINK_COLOR,
+            "0", size=28, weight=ft.FontWeight.BOLD, color=theme.LINK_COLOR,
         )
 
         # ── Agenda ───────────────────────────────────────────────────────
@@ -142,7 +151,7 @@ class NetrunnerTracker:
         )
 
         # ── Panels container ─────────────────────────────────────────────
-        self._panels_container = ft.Column(spacing=4)
+        self._panels_container = ft.Column(spacing=4, expand=True)
 
         # ── End Turn button ──────────────────────────────────────────────
         self._end_turn_btn_label  = ft.Text(
@@ -151,7 +160,6 @@ class NetrunnerTracker:
             style=ft.TextStyle(weight=ft.FontWeight.BOLD, letter_spacing=1.5),
         )
         self._end_turn_btn = ft.Container(
-            expand=True,
             content=ft.Row(
                 [ft.Text("▶", size=12, color=theme.NEON_GREEN), self._end_turn_btn_label],
                 spacing=6,
@@ -179,7 +187,7 @@ class NetrunnerTracker:
             "0 events", size=9, color=theme.AGENDA_GOLD,
         )
         self._log_toggle_icon = ft.Text(
-            "▲", size=10, color=theme.TEXT_SECONDARY,
+            "▼", size=10, color=theme.TEXT_SECONDARY,
         )
         self._log_body = ft.Container(
             content=self._log_list,
@@ -234,20 +242,25 @@ class NetrunnerTracker:
         self._corp_agenda_text.value   = str(s.corp_agenda)
         self._runner_agenda_text.value = str(s.runner_agenda)
 
-        # ── Panels + agenda sidebar ──────────────────────────────────────
+        # ── Panels + agenda halves ────────────────────────────────────────
         corp_active = s.active_player == "corp"
-        agenda = self._build_agenda_bar()
-        # Runner panel + agenda bar side by side (same height)
-        runner_row = ft.Row(
-            [
-                self._build_runner_panel(active=not corp_active),
-                agenda,
-            ],
-            spacing=5,
-            vertical_alignment=ft.CrossAxisAlignment.STRETCH,
+        corp_agenda, runner_agenda = self._build_agenda_halves()
+
+        corp = self._build_corp_panel(active=corp_active)
+        corp.expand = True
+        runner = self._build_runner_panel(active=not corp_active)
+        runner.expand = True
+
+        # Each panel + its agenda half side by side
+        corp_row = ft.Row(
+            [corp, corp_agenda], spacing=5, expand=True,
         )
+        runner_row = ft.Row(
+            [runner, runner_agenda], spacing=5, expand=True,
+        )
+
         self._panels_container.controls = [
-            self._build_corp_panel(active=corp_active),
+            corp_row,
             self._end_turn_btn,
             runner_row,
         ]
@@ -458,7 +471,7 @@ class NetrunnerTracker:
     def _on_toggle_log(self, e) -> None:
         self._log_expanded = not self._log_expanded
         self._log_body.visible = self._log_expanded
-        self._log_toggle_icon.value = "▼" if self._log_expanded else "▲"
+        self._log_toggle_icon.value = "▲" if self._log_expanded else "▼"
         bl = 0 if self._log_expanded else 8
         self._log_header.border_radius = ft.BorderRadius.only(
             top_left=8, top_right=8,
@@ -600,19 +613,28 @@ class NetrunnerTracker:
 
     # ── Agenda bar ────────────────────────────────────────────────────────────
 
-    def _build_agenda_bar(self) -> ft.Container:
-        """Vertical tug-of-war agenda sidebar."""
+    def _build_agenda_halves(self) -> tuple[ft.Container, ft.Container]:
+        """Returns (corp_agenda_half, runner_agenda_half)."""
         s = self.state
-        return ui.agenda_bar(
-            corp_score=s.corp_agenda,
-            runner_score=s.runner_agenda,
-            corp_score_ref=self._corp_agenda_text,
-            runner_score_ref=self._runner_agenda_text,
-            on_corp_tap=self._agenda_tap("corp", +1),
-            on_corp_long_press=self._agenda_tap("corp", -1),
-            on_runner_tap=self._agenda_tap("runner", +1),
-            on_runner_long_press=self._agenda_tap("runner", -1),
+        corp_half = ui.agenda_half(
+            score=s.corp_agenda,
+            score_ref=self._corp_agenda_text,
+            color=theme.CORP_ACCENT,
+            on_tap=self._agenda_tap("corp", +1),
+            on_long_press=self._agenda_tap("corp", -1),
+            score_at_top=True,
+            fill_from_top=True,
         )
+        runner_half = ui.agenda_half(
+            score=s.runner_agenda,
+            score_ref=self._runner_agenda_text,
+            color=theme.RUNNER_ACCENT,
+            on_tap=self._agenda_tap("runner", +1),
+            on_long_press=self._agenda_tap("runner", -1),
+            score_at_top=False,
+            fill_from_top=False,
+        )
+        return corp_half, runner_half
 
     # ── Layout assembly ───────────────────────────────────────────────────────
 
@@ -671,18 +693,39 @@ class NetrunnerTracker:
         )
 
         sp = 4 if self._is_mobile else 6
-        self.page.add(
-            ft.Column(
+
+        # Panels area gets min_height = page height so it always fills
+        # the screen. When log expands below, the page scrolls.
+        page_h = self.page.height or 800
+        footer_h = 50  # log header + reset approximate height
+        panels_min_h = page_h - footer_h - (36 if self._is_mobile else 16)
+
+        fixed_area = ft.Container(
+            content=ft.Column(
                 [
                     self._turn_banner,
                     self._winner_banner,
                     self._panels_container,
-                    log_panel,
-                    ft.Row([reset_btn], alignment=ft.MainAxisAlignment.CENTER),
                 ],
                 spacing=sp,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                scroll=ft.ScrollMode.AUTO,
                 expand=True,
-            )
+            ),
+            height=panels_min_h,
         )
+
+        footer = ft.Column(
+            [
+                log_panel,
+                ft.Row([reset_btn], alignment=ft.MainAxisAlignment.CENTER),
+            ],
+            spacing=sp,
+        )
+
+        self._main_column = ft.Column(
+            [fixed_area, footer],
+            spacing=sp,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+        )
+        self.page.add(self._main_column)
