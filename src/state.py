@@ -67,15 +67,6 @@ class GameState:
             return "runner"
         return None
 
-    @property
-    def agenda_bar_ratio(self) -> float:
-        """
-        Corp's share of scored agendas (0.0–1.0) for the pip display.
-        Returns 0.5 when nobody has scored so the UI starts in a neutral state.
-        """
-        total = self.corp_agenda + self.runner_agenda
-        return self.corp_agenda / total if total > 0 else 0.5
-
     # ── Mutations ─────────────────────────────────────────────────────────────
 
     def end_turn(self) -> None:

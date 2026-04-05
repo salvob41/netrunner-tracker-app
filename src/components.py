@@ -96,223 +96,186 @@ def click_tokens_row(
     ]
 
 
-# ── Stepper button ────────────────────────────────────────────────────────────
+# ── Split-tap stat ───────────────────────────────────────────────────────────
 
-def stepper(symbol: str, on_click, color: str) -> ft.Container:
-    """
-    +/− button for adjusting any numeric stat.
-    Container gives tighter size control than IconButton and has a
-    predictable touch target on both desktop and touchscreen.
-    """
-    return ft.Container(
-        width=32,
-        height=32,
-        border_radius=4,
-        bgcolor=ft.Colors.with_opacity(0.10, color),
-        border=ft.Border.all(1, ft.Colors.with_opacity(0.35, color)),
-        alignment=ft.Alignment.CENTER,
-        on_click=on_click,
-        content=ft.Text(
-            symbol,
-            size=18,
-            color=color,
-            weight=ft.FontWeight.BOLD,
-            text_align=ft.TextAlign.CENTER,
-        ),
-    )
-
-
-# ── Stat row ──────────────────────────────────────────────────────────────────
-
-def stat_row(
+def split_tap_stat(
     asset_path: str,
     asset_color: str,
-    label: str,
     value_ref: ft.Text,
-    color: str,
-    on_decrement,
-    on_increment,
+    on_dec,
+    on_inc,
+    icon_size: int = 18,
+    bg: str | None = None,
+    delta_ref: ft.Text | None = None,
 ) -> ft.Container:
     """
-    One labeled game stat with an NSG icon, value display, and +/− controls.
-    Using a real NSG asset instead of a generic icon lets players map the
-    symbol to the one they've already seen on physical cards.
+    Compact stat cell: icon (left) + value (centered) + optional delta badge.
+    Tap left half = decrement, tap right half = increment.
+    delta_ref: if provided, shown as a small +N/-N badge in the top-right.
     """
-    return ft.Container(
-        content=ft.Row(
-            [
-                nsg_icon(asset_path, 22, asset_color),
-                ft.Text(label, size=11, color=theme.TEXT_SECONDARY, width=62),
-                value_ref,
-                ft.Row(
-                    [
-                        stepper("−", on_decrement, color),
-                        stepper("+", on_increment, color),
-                    ],
-                    spacing=4,
+    icon = ft.Container(
+        content=nsg_icon(asset_path, icon_size,
+                         ft.Colors.with_opacity(0.6, asset_color)),
+        padding=ft.Padding.only(left=8),
+    )
+    layers = [
+        # Icon pinned to the left
+        ft.Container(content=icon, alignment=ft.Alignment.CENTER_LEFT),
+        # Value centered in the full cell
+        ft.Container(content=value_ref, alignment=ft.Alignment.CENTER),
+    ]
+    # Delta badge in top-right corner
+    if delta_ref:
+        layers.append(
+            ft.Container(
+                content=delta_ref,
+                alignment=ft.Alignment.TOP_RIGHT,
+                padding=ft.Padding.only(right=6, top=4),
+            ),
+        )
+    # Two invisible tap zones: left half = dec, right half = inc
+    # Explicit height + expand ensures zones fill the full 48px cell
+    layers.append(
+        ft.Container(
+            content=ft.Row([
+                ft.GestureDetector(
+                    content=ft.Container(
+                        bgcolor=ft.Colors.TRANSPARENT,
+                        height=48,
+                        expand=True,
+                    ),
+                    on_tap=on_dec,
+                    expand=True,
                 ),
-            ],
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ft.GestureDetector(
+                    content=ft.Container(
+                        bgcolor=ft.Colors.TRANSPARENT,
+                        height=48,
+                        expand=True,
+                    ),
+                    on_tap=on_inc,
+                    expand=True,
+                ),
+            ], spacing=0, expand=True),
+            height=48,
+            expand=True,
         ),
-        padding=ft.Padding.symmetric(horizontal=8, vertical=5),
     )
-
-
-# ── Compact stat (half-width, for side-by-side layout) ───────────────────
-
-def compact_stat(
-    asset_path: str,
-    asset_color: str,
-    label: str,
-    value_ref: ft.Text,
-    color: str,
-    on_decrement,
-    on_increment,
-) -> ft.Container:
-    """
-    Half-width stat with icon, value, and +/− buttons.
-    Designed to sit two-per-row for a tighter layout.
-    """
-    return ft.Container(
+    cell = ft.Container(
+        content=ft.Stack(layers),
+        border_radius=8,
+        height=48,
+        bgcolor=bg,
         expand=True,
-        content=ft.Row(
-            [
-                nsg_icon(asset_path, 18, asset_color),
-                ft.Text(label, size=10, color=theme.TEXT_SECONDARY),
-                value_ref,
-                ft.Row(
-                    [
-                        stepper("−", on_decrement, color),
-                        stepper("+", on_increment, color),
-                    ],
-                    spacing=3,
-                ),
-            ],
-            spacing=4,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
-        padding=ft.Padding.symmetric(horizontal=6, vertical=4),
+        animate_opacity=ft.Animation(120, ft.AnimationCurve.EASE_OUT),
     )
+    return cell
 
 
-# ── Hand size row (current / max with dual controls) ────────────────────
+# ── Vertical agenda bar ──────────────────────────────────────────────────────
 
-def hand_row(
-    asset_path: str,
-    value_ref: ft.Text,
-    color: str,
-    on_decrement,
-    on_increment,
+def agenda_bar(
+    corp_score: int,
+    runner_score: int,
+    corp_score_ref: ft.Text,
+    runner_score_ref: ft.Text,
+    on_corp_tap,
+    on_corp_long_press,
+    on_runner_tap,
+    on_runner_long_press,
 ) -> ft.Container:
     """
-    Hand size display with +/− controls.
-    Shows the max hand size (5 - core damage + bonuses).
+    Vertical tug-of-war agenda bar. Top half = Corp, bottom half = Runner.
+    Fills grow OUTWARD from the center divider.
+    Uses expand so it stretches to match sibling height.
+    Tap to +1, long-press to -1. Dead zone around center.
     """
-    return ft.Container(
-        content=ft.Row(
-            [
-                nsg_icon(asset_path, 20, color),
-                ft.Text("Hand Size", size=11, color=theme.TEXT_SECONDARY),
-                value_ref,
-                ft.Row(
-                    [
-                        stepper("−", on_decrement, color),
-                        stepper("+", on_increment, color),
-                    ],
-                    spacing=4,
-                ),
-            ],
-            spacing=6,
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+    dead_zone = theme.AGENDA_BAR_DEAD_ZONE
+    bar_width = theme.AGENDA_BAR_WIDTH
+
+    # Fill proportions (expand ratios to approximate score/7)
+    corp_fill = max(corp_score, 0)
+    corp_empty = max(7 - corp_score, 0)
+    runner_fill = max(runner_score, 0)
+    runner_empty = max(7 - runner_score, 0)
+
+    # Corp half (top): empty space at top, fill near center, score near center
+    corp_children = []
+    if corp_empty > 0:
+        corp_children.append(ft.Container(expand=corp_empty))
+    if corp_fill > 0:
+        corp_children.append(ft.Container(
+            expand=corp_fill,
+            bgcolor=ft.Colors.with_opacity(0.6, theme.CORP_ACCENT),
+            border_radius=2,
+        ))
+    corp_children.append(ft.Container(
+        content=corp_score_ref,
+        alignment=ft.Alignment.CENTER,
+        padding=ft.Padding.only(bottom=3),
+    ))
+
+    corp_half = ft.GestureDetector(
+        content=ft.Container(
+            width=bar_width,
+            bgcolor=theme.PANEL_BG,
+            border_radius=ft.BorderRadius.only(top_left=6, top_right=6),
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            expand=True,
+            content=ft.Column(corp_children, spacing=0, expand=True),
         ),
-        padding=ft.Padding.symmetric(horizontal=8, vertical=5),
+        on_tap=on_corp_tap,
+        on_long_press_start=on_corp_long_press,
     )
 
+    # Center divider + dead zones
+    # Dead zone includes the divider line so total gap = AGENDA_BAR_DEAD_ZONE
+    divider_height = 2
+    dead_zone_padding = max(0, dead_zone - divider_height)
+    dead_top = ft.Container(width=bar_width, height=dead_zone_padding // 2)
+    divider_line = ft.Container(width=bar_width, height=divider_height, bgcolor=theme.AGENDA_GOLD)
+    dead_bottom = ft.Container(width=bar_width, height=dead_zone_padding - dead_zone_padding // 2)
 
-# ── Agenda pips ───────────────────────────────────────────────────────────────
+    # Runner half (bottom): score near center, fill near center, empty at bottom
+    runner_children = [
+        ft.Container(
+            content=runner_score_ref,
+            alignment=ft.Alignment.CENTER,
+            padding=ft.Padding.only(top=3),
+        ),
+    ]
+    if runner_fill > 0:
+        runner_children.append(ft.Container(
+            expand=runner_fill,
+            bgcolor=ft.Colors.with_opacity(0.6, theme.RUNNER_ACCENT),
+            border_radius=2,
+        ))
+    if runner_empty > 0:
+        runner_children.append(ft.Container(expand=runner_empty))
 
-def _pip(filled: bool, color: str) -> ft.Container:
-    """
-    A single agenda-point pip: filled solid circle = scored, empty = not.
-    Small and dense so all 14 pips fit in one row without scrolling.
-    """
+    runner_half = ft.GestureDetector(
+        content=ft.Container(
+            width=bar_width,
+            bgcolor=theme.PANEL_BG,
+            border_radius=ft.BorderRadius.only(bottom_left=6, bottom_right=6),
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            expand=True,
+            content=ft.Column(runner_children, spacing=0, expand=True),
+        ),
+        on_tap=on_runner_tap,
+        on_long_press_start=on_runner_long_press,
+    )
+
     return ft.Container(
-        width=13,
-        height=13,
-        border_radius=7,
-        bgcolor=color if filled else "transparent",
-        border=ft.Border.all(2, color if filled else ft.Colors.with_opacity(0.28, color)),
-    )
-
-
-def agenda_pips_split(corp_score: int, runner_score: int) -> tuple[list, list]:
-    """
-    Returns (corp_pips, runner_pips) as separate lists for the compact
-    layout where each side's score sits above its own pips.
-    """
-    corp_pips = [
-        _pip(i >= (7 - corp_score), theme.CORP_ACCENT) for i in range(7)
-    ]
-    runner_pips = [
-        _pip(i < runner_score, theme.RUNNER_ACCENT) for i in range(7)
-    ]
-    return corp_pips, runner_pips
-
-
-def agenda_pip_row(corp_score: int, runner_score: int) -> ft.Row:
-    """
-    Renders a tug-of-war pip display where both sides fill from the center:
-
-        ○○○○●●●|●●○○○○○
-             ←Corp  Runner→
-
-    Corp pips fill RIGHT-to-LEFT (toward the divider from the left edge).
-    Runner pips fill LEFT-to-RIGHT (toward the divider from the right edge).
-    This makes the scored points cluster around the center divider,
-    visually showing the tension between the two factions.
-    """
-    # Corp: pips 0-6, filled from the RIGHT (index 6 fills first)
-    # So pip at index i is filled if i >= (7 - corp_score)
-    corp_pips = [
-        _pip(i >= (7 - corp_score), theme.CORP_ACCENT) for i in range(7)
-    ]
-
-    # Runner: pips 0-6, filled from the LEFT (index 0 fills first)
-    # So pip at index i is filled if i < runner_score
-    runner_pips = [
-        _pip(i < runner_score, theme.RUNNER_ACCENT) for i in range(7)
-    ]
-
-    divider = ft.Container(
-        width=2,
-        height=20,
-        bgcolor=ft.Colors.with_opacity(0.35, theme.TEXT_SECONDARY),
-        border_radius=1,
-        margin=ft.Margin.symmetric(horizontal=4),
-    )
-
-    return ft.Row(
-        [*corp_pips, divider, *runner_pips],
-        spacing=3,
-        alignment=ft.MainAxisAlignment.CENTER,
-        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-    )
-
-
-# ── Section label ─────────────────────────────────────────────────────────────
-
-def section_label(text: str, color: str) -> ft.Text:
-    """
-    Uppercase sub-heading in the same faction color (muted) so it
-    doesn't compete with the values it describes.
-    """
-    return ft.Text(
-        text,
-        size=10,
-        color=ft.Colors.with_opacity(0.50, color),
-        style=ft.TextStyle(weight=ft.FontWeight.W_700, letter_spacing=1.8),
+        content=ft.Column(
+            [corp_half, dead_top, divider_line, dead_bottom, runner_half],
+            spacing=0,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            expand=True,
+        ),
+        border=ft.Border.all(1, ft.Colors.with_opacity(0.45, theme.AGENDA_GOLD)),
+        border_radius=8,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
     )
 
 
@@ -348,116 +311,49 @@ def panel(
             2 if active else 1,
             ft.Colors.with_opacity(border_opacity, color),
         ),
-        padding=14,
+        padding=8,
         content=ft.Column(
             [
                 ft.Row(
                     [
                         ft.Container(
-                            width=3, height=20, bgcolor=color, border_radius=2,
+                            width=3, height=14, bgcolor=color, border_radius=2,
                         ),
                         ft.Text(
                             title,
-                            size=13,
+                            size=11,
                             color=color,
                             style=ft.TextStyle(
                                 weight=ft.FontWeight.BOLD,
-                                letter_spacing=2.5,
+                                letter_spacing=2.0,
                             ),
                         ),
                         ft.Container(expand=True),
-                        # "ACTIVE" pill badge so it's readable at a glance
+                        # "YOUR TURN" pill badge
                         ft.Container(
                             visible=active,
                             content=ft.Text(
                                 "YOUR TURN",
-                                size=9,
+                                size=8,
                                 color=color,
                                 style=ft.TextStyle(
                                     weight=ft.FontWeight.BOLD,
-                                    letter_spacing=1.2,
+                                    letter_spacing=1.0,
                                 ),
                             ),
                             bgcolor=ft.Colors.with_opacity(0.15, color),
                             border=ft.Border.all(1, ft.Colors.with_opacity(0.5, color)),
                             border_radius=4,
-                            padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+                            padding=ft.Padding.symmetric(horizontal=5, vertical=1),
                         ),
                     ],
-                    spacing=8,
+                    spacing=6,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                ft.Divider(height=1, color=ft.Colors.with_opacity(0.18, color)),
                 *controls,
             ],
-            spacing=8,
+            spacing=5,
         ),
-    )
-
-
-# ── Refill button ─────────────────────────────────────────────────────────
-
-def refill_button(color: str, on_click) -> ft.Container:
-    """
-    Small correction button to restore all clicks to maximum.
-    Muted styling communicates this is a correction, not a primary action.
-    """
-    return ft.Container(
-        content=ft.Text(
-            "↺ refill",
-            size=10,
-            color=ft.Colors.with_opacity(0.5, color),
-        ),
-        border=ft.Border.all(1, ft.Colors.with_opacity(0.2, color)),
-        border_radius=4,
-        padding=ft.Padding.symmetric(horizontal=8, vertical=3),
-        on_click=on_click,
-    )
-
-
-# ── Credit row (with debounce delta badge) ────────────────────────────────
-
-def credit_row(
-    color: str,
-    value_ref: ft.Text,
-    delta_ref: ft.Text,
-    timer_bar_ref: ft.Container,
-    on_decrement,
-    on_increment,
-) -> ft.Container:
-    """
-    Credits stat row with a pending delta badge and timer bar for
-    debounce feedback.  The delta_ref and timer_bar_ref are owned by
-    the tracker — this component just places them in the layout.
-    """
-    return ft.Container(
-        content=ft.Column(
-            [
-                ft.Row(
-                    [
-                        nsg_icon(theme.ASSET_CREDIT, 22, color),
-                        ft.Text("Credits", size=11, color=theme.TEXT_SECONDARY, width=62),
-                        ft.Row(
-                            [value_ref, delta_ref],
-                            spacing=6,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        ft.Row(
-                            [
-                                stepper("−", on_decrement, color),
-                                stepper("+", on_increment, color),
-                            ],
-                            spacing=4,
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-                timer_bar_ref,
-            ],
-            spacing=2,
-        ),
-        padding=ft.Padding.symmetric(horizontal=8, vertical=5),
     )
 
 
@@ -516,45 +412,4 @@ def log_entry_row(entry) -> ft.Container:
         border=ft.Border(
             bottom=ft.BorderSide(1, ft.Colors.with_opacity(0.10, theme.TEXT_SECONDARY)),
         ),
-    )
-
-
-# ── Action button ─────────────────────────────────────────────────────────────
-
-def action_button(
-    symbol: str,
-    label: str,
-    color: str,
-    on_click,
-    expand: bool = False,
-) -> ft.Container:
-    """
-    Bordered action button.  `expand=True` for the primary End Turn action
-    so it gets a larger touch target than the secondary Reset button.
-    The color coding (green = safe flow, red = destructive) follows standard
-    UI convention so players don't have to read the label to know the risk.
-    """
-    return ft.Container(
-        expand=expand,
-        content=ft.Row(
-            [
-                ft.Text(symbol, size=14, color=color),
-                ft.Text(
-                    label,
-                    size=12,
-                    color=color,
-                    style=ft.TextStyle(
-                        weight=ft.FontWeight.BOLD,
-                        letter_spacing=1.5,
-                    ),
-                ),
-            ],
-            spacing=6,
-            alignment=ft.MainAxisAlignment.CENTER,
-        ),
-        bgcolor=ft.Colors.with_opacity(0.12, color),
-        border=ft.Border.all(1, ft.Colors.with_opacity(0.50, color)),
-        border_radius=8,
-        padding=ft.Padding.symmetric(horizontal=18, vertical=12),
-        on_click=on_click,
     )

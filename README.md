@@ -18,6 +18,8 @@ A game state tracker for [Android: Netrunner](https://nullsignal.games/), built 
 
 ## Screenshots
 
+![Netrunner Tracker mockup](docs/mockup-v2.png)
+
 The app uses official [Null Signal Games](https://nullsignal.games/) iconography, tinted per-faction using `SRC_IN` blend mode.
 
 ## Running locally
