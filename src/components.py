@@ -96,155 +96,67 @@ def click_tokens_row(
     ]
 
 
-# ── Stepper button ────────────────────────────────────────────────────────────
+# ── Split-tap stat ───────────────────────────────────────────────────────────
 
-def stepper(symbol: str, on_click, color: str) -> ft.Container:
-    """
-    +/− button for adjusting any numeric stat.
-    Container gives tighter size control than IconButton and has a
-    predictable touch target on both desktop and touchscreen.
-    """
-    return ft.Container(
-        width=32,
-        height=32,
-        border_radius=4,
-        bgcolor=ft.Colors.with_opacity(0.10, color),
-        border=ft.Border.all(1, ft.Colors.with_opacity(0.35, color)),
-        alignment=ft.Alignment.CENTER,
-        on_click=on_click,
-        content=ft.Text(
-            symbol,
-            size=18,
-            color=color,
-            weight=ft.FontWeight.BOLD,
-            text_align=ft.TextAlign.CENTER,
-        ),
-    )
-
-
-# ── Tap stat (icon + value, tap to +1, long-press to -1) ────────────────────
-
-def tap_stat(
+def split_tap_stat(
     asset_path: str,
     asset_color: str,
     value_ref: ft.Text,
-    on_tap,
-    on_long_press,
+    on_dec,
+    on_inc,
     icon_size: int = 18,
+    bg: str | None = None,
+    delta_ref: ft.Text | None = None,
 ) -> ft.Container:
     """
-    Compact stat: NSG icon + value only. No text label, no stepper buttons.
-    Tap anywhere to increment, long-press to decrement.
-    Long-press triggers a brief opacity flash as visual feedback.
+    Compact stat cell: icon (left) + value (centered) + optional delta badge.
+    Tap left half = decrement, tap right half = increment.
+    delta_ref: if provided, shown as a small +N/-N badge in the top-right.
     """
-    content = ft.Row(
-        [
-            nsg_icon(asset_path, icon_size, asset_color),
-            value_ref,
-        ],
-        spacing=6,
-        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+    icon = ft.Container(
+        content=nsg_icon(asset_path, icon_size,
+                         ft.Colors.with_opacity(0.6, asset_color)),
+        padding=ft.Padding.only(left=8),
     )
-    container = ft.Container(
-        content=content,
-        padding=ft.Padding.symmetric(horizontal=8, vertical=6),
-        border_radius=6,
-        ink=True,
-        animate_opacity=ft.Animation(150, ft.AnimationCurve.EASE_OUT),
-    )
-
-    def _on_long_press(e):
-        # Flash feedback: dim then restore
-        container.opacity = 0.4
-        container.update()
-        if on_long_press:
-            on_long_press(e)
-        container.opacity = 1.0
-        container.update()
-
-    return ft.GestureDetector(
-        content=container,
-        on_tap=on_tap,
-        on_long_press_start=_on_long_press,
-    )
-
-
-def tap_credit_row(
-    color: str,
-    value_ref: ft.Text,
-    delta_ref: ft.Text,
-    timer_bar_ref: ft.Container,
-    on_tap,
-    on_long_press,
-) -> ft.Container:
-    """
-    Credits stat with tap/long-press and debounce feedback.
-    Shows icon + value + pending delta badge + timer bar.
-    No text label, no stepper buttons.
-    """
-    content = ft.Column(
-        [
-            ft.Row(
-                [
-                    nsg_icon(theme.ASSET_CREDIT, 22, color),
-                    ft.Row(
-                        [value_ref, delta_ref],
-                        spacing=6,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                ],
-                spacing=6,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+    layers = [
+        # Icon pinned to the left
+        ft.Container(content=icon, alignment=ft.Alignment.CENTER_LEFT),
+        # Value centered in the full cell
+        ft.Container(content=value_ref, alignment=ft.Alignment.CENTER),
+    ]
+    # Delta badge in top-right corner
+    if delta_ref:
+        layers.append(
+            ft.Container(
+                content=delta_ref,
+                alignment=ft.Alignment.TOP_RIGHT,
+                padding=ft.Padding.only(right=6, top=4),
             ),
-            timer_bar_ref,
-        ],
-        spacing=2,
+        )
+    # Two invisible tap zones: left half = dec, right half = inc
+    layers.append(
+        ft.Row([
+            ft.GestureDetector(
+                content=ft.Container(bgcolor=ft.Colors.TRANSPARENT),
+                on_tap=on_dec,
+                expand=True,
+            ),
+            ft.GestureDetector(
+                content=ft.Container(bgcolor=ft.Colors.TRANSPARENT),
+                on_tap=on_inc,
+                expand=True,
+            ),
+        ], spacing=0),
     )
-    container = ft.Container(
-        content=content,
-        padding=ft.Padding.symmetric(horizontal=8, vertical=5),
-        border_radius=6,
-        ink=True,
+    cell = ft.Container(
+        content=ft.Stack(layers),
+        border_radius=8,
+        height=48,
+        bgcolor=bg,
+        expand=True,
+        animate_opacity=ft.Animation(120, ft.AnimationCurve.EASE_OUT),
     )
-    return ft.GestureDetector(
-        content=container,
-        on_tap=on_tap,
-        on_long_press_start=on_long_press,
-    )
-
-
-def stepper_stat(
-    asset_path: str,
-    asset_color: str,
-    value_ref: ft.Text,
-    color: str,
-    on_decrement,
-    on_increment,
-    icon_size: int = 20,
-) -> ft.Container:
-    """
-    Stat with icon + value + stepper buttons. No text label.
-    Used for Hand Size, MU, Link — stats where tap/long-press
-    would be confusing.
-    """
-    return ft.Container(
-        content=ft.Row(
-            [
-                nsg_icon(asset_path, icon_size, asset_color),
-                value_ref,
-                ft.Container(expand=True),
-                ft.Row(
-                    [
-                        stepper("−", on_decrement, color),
-                        stepper("+", on_increment, color),
-                    ],
-                    spacing=4,
-                ),
-            ],
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
-        padding=ft.Padding.symmetric(horizontal=8, vertical=5),
-    )
+    return cell
 
 
 # ── Vertical agenda bar ──────────────────────────────────────────────────────
@@ -258,97 +170,81 @@ def agenda_bar(
     on_corp_long_press,
     on_runner_tap,
     on_runner_long_press,
-    bar_height: int = 300,
 ) -> ft.Container:
     """
-    Vertical tug-of-war agenda bar. Top half = Corp (fills downward),
-    bottom half = Runner (fills upward). Tap to +1, long-press to -1.
-    8px dead zone around the center divider.
+    Vertical tug-of-war agenda bar. Top half = Corp, bottom half = Runner.
+    Fills grow OUTWARD from the center divider.
+    Uses expand so it stretches to match sibling height.
+    Tap to +1, long-press to -1. Dead zone around center.
     """
-    half_height = bar_height // 2
     dead_zone = theme.AGENDA_BAR_DEAD_ZONE
     bar_width = theme.AGENDA_BAR_WIDTH
 
-    # Corp fill: score/7 of the top half, filling from top down
-    corp_fill_pct = min(corp_score / 7, 1.0) if corp_score > 0 else 0
-    corp_fill_h = int(half_height * corp_fill_pct)
+    # Fill proportions (expand ratios to approximate score/7)
+    corp_fill = max(corp_score, 0)
+    corp_empty = max(7 - corp_score, 0)
+    runner_fill = max(runner_score, 0)
+    runner_empty = max(7 - runner_score, 0)
 
-    # Runner fill: score/7 of the bottom half, filling from bottom up
-    runner_fill_pct = min(runner_score / 7, 1.0) if runner_score > 0 else 0
-    runner_fill_h = int(half_height * runner_fill_pct)
+    # Corp half (top): empty space at top, fill near center, score near center
+    corp_children = []
+    if corp_empty > 0:
+        corp_children.append(ft.Container(expand=corp_empty))
+    if corp_fill > 0:
+        corp_children.append(ft.Container(
+            expand=corp_fill,
+            bgcolor=ft.Colors.with_opacity(0.6, theme.CORP_ACCENT),
+            border_radius=2,
+        ))
+    corp_children.append(ft.Container(
+        content=corp_score_ref,
+        alignment=ft.Alignment.CENTER,
+        padding=ft.Padding.only(bottom=3),
+    ))
 
-    # Corp half (top): fill grows downward from the top
     corp_half = ft.GestureDetector(
         content=ft.Container(
             width=bar_width,
-            height=half_height - dead_zone // 2,
             bgcolor=theme.PANEL_BG,
             border_radius=ft.BorderRadius.only(top_left=6, top_right=6),
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            content=ft.Column(
-                [
-                    # Score number at top
-                    ft.Container(
-                        content=corp_score_ref,
-                        alignment=ft.Alignment.CENTER,
-                        padding=ft.Padding.only(top=4),
-                    ),
-                    # Fill bar grows downward from score number
-                    ft.Container(
-                        width=bar_width,
-                        height=corp_fill_h,
-                        bgcolor=ft.Colors.with_opacity(0.6, theme.CORP_ACCENT),
-                        border_radius=2,
-                    ),
-                    ft.Container(expand=True),
-                ],
-                spacing=0,
-                expand=True,
-            ),
+            expand=True,
+            content=ft.Column(corp_children, spacing=0, expand=True),
         ),
         on_tap=on_corp_tap,
         on_long_press_start=on_corp_long_press,
     )
 
-    # Center divider
-    divider_line = ft.Container(
-        width=bar_width,
-        height=2,
-        bgcolor=theme.AGENDA_GOLD,
-    )
-
-    # Dead zone spacers
+    # Center divider + dead zones
     dead_top = ft.Container(width=bar_width, height=dead_zone // 2)
+    divider_line = ft.Container(width=bar_width, height=2, bgcolor=theme.AGENDA_GOLD)
     dead_bottom = ft.Container(width=bar_width, height=dead_zone // 2)
 
-    # Runner half (bottom): fill grows upward from the bottom
+    # Runner half (bottom): score near center, fill near center, empty at bottom
+    runner_children = [
+        ft.Container(
+            content=runner_score_ref,
+            alignment=ft.Alignment.CENTER,
+            padding=ft.Padding.only(top=3),
+        ),
+    ]
+    if runner_fill > 0:
+        runner_children.append(ft.Container(
+            expand=runner_fill,
+            bgcolor=ft.Colors.with_opacity(0.6, theme.RUNNER_ACCENT),
+            border_radius=2,
+        ))
+    if runner_empty > 0:
+        runner_children.append(ft.Container(expand=runner_empty))
+
     runner_half = ft.GestureDetector(
         content=ft.Container(
             width=bar_width,
-            height=half_height - dead_zone // 2,
             bgcolor=theme.PANEL_BG,
             border_radius=ft.BorderRadius.only(bottom_left=6, bottom_right=6),
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            content=ft.Column(
-                [
-                    ft.Container(expand=True),
-                    # Fill bar grows upward toward the center
-                    ft.Container(
-                        width=bar_width,
-                        height=runner_fill_h,
-                        bgcolor=ft.Colors.with_opacity(0.6, theme.RUNNER_ACCENT),
-                        border_radius=2,
-                    ),
-                    # Score number at bottom
-                    ft.Container(
-                        content=runner_score_ref,
-                        alignment=ft.Alignment.CENTER,
-                        padding=ft.Padding.only(bottom=4),
-                    ),
-                ],
-                spacing=0,
-                expand=True,
-            ),
+            expand=True,
+            content=ft.Column(runner_children, spacing=0, expand=True),
         ),
         on_tap=on_runner_tap,
         on_long_press_start=on_runner_long_press,
@@ -359,25 +255,11 @@ def agenda_bar(
             [corp_half, dead_top, divider_line, dead_bottom, runner_half],
             spacing=0,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            expand=True,
         ),
         border=ft.Border.all(1, ft.Colors.with_opacity(0.45, theme.AGENDA_GOLD)),
         border_radius=8,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
-    )
-
-
-# ── Section label ─────────────────────────────────────────────────────────────
-
-def section_label(text: str, color: str) -> ft.Text:
-    """
-    Uppercase sub-heading in the same faction color (muted) so it
-    doesn't compete with the values it describes.
-    """
-    return ft.Text(
-        text,
-        size=10,
-        color=ft.Colors.with_opacity(0.50, color),
-        style=ft.TextStyle(weight=ft.FontWeight.W_700, letter_spacing=1.8),
     )
 
 
@@ -413,73 +295,50 @@ def panel(
             2 if active else 1,
             ft.Colors.with_opacity(border_opacity, color),
         ),
-        padding=14,
+        padding=8,
         content=ft.Column(
             [
                 ft.Row(
                     [
                         ft.Container(
-                            width=3, height=20, bgcolor=color, border_radius=2,
+                            width=3, height=14, bgcolor=color, border_radius=2,
                         ),
                         ft.Text(
                             title,
-                            size=13,
+                            size=11,
                             color=color,
                             style=ft.TextStyle(
                                 weight=ft.FontWeight.BOLD,
-                                letter_spacing=2.5,
+                                letter_spacing=2.0,
                             ),
                         ),
                         ft.Container(expand=True),
-                        # "ACTIVE" pill badge so it's readable at a glance
+                        # "YOUR TURN" pill badge
                         ft.Container(
                             visible=active,
                             content=ft.Text(
                                 "YOUR TURN",
-                                size=9,
+                                size=8,
                                 color=color,
                                 style=ft.TextStyle(
                                     weight=ft.FontWeight.BOLD,
-                                    letter_spacing=1.2,
+                                    letter_spacing=1.0,
                                 ),
                             ),
                             bgcolor=ft.Colors.with_opacity(0.15, color),
                             border=ft.Border.all(1, ft.Colors.with_opacity(0.5, color)),
                             border_radius=4,
-                            padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+                            padding=ft.Padding.symmetric(horizontal=5, vertical=1),
                         ),
                     ],
-                    spacing=8,
+                    spacing=6,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                ft.Divider(height=1, color=ft.Colors.with_opacity(0.18, color)),
                 *controls,
             ],
-            spacing=8,
+            spacing=5,
         ),
     )
-
-
-# ── Refill button ─────────────────────────────────────────────────────────
-
-def refill_button(color: str, on_click) -> ft.Container:
-    """
-    Small correction button to restore all clicks to maximum.
-    Muted styling communicates this is a correction, not a primary action.
-    """
-    return ft.Container(
-        content=ft.Text(
-            "↺ refill",
-            size=10,
-            color=ft.Colors.with_opacity(0.5, color),
-        ),
-        border=ft.Border.all(1, ft.Colors.with_opacity(0.2, color)),
-        border_radius=4,
-        padding=ft.Padding.symmetric(horizontal=8, vertical=3),
-        on_click=on_click,
-    )
-
-
 
 
 # ── Log entry row ─────────────────────────────────────────────────────────
@@ -537,45 +396,4 @@ def log_entry_row(entry) -> ft.Container:
         border=ft.Border(
             bottom=ft.BorderSide(1, ft.Colors.with_opacity(0.10, theme.TEXT_SECONDARY)),
         ),
-    )
-
-
-# ── Action button ─────────────────────────────────────────────────────────────
-
-def action_button(
-    symbol: str,
-    label: str,
-    color: str,
-    on_click,
-    expand: bool = False,
-) -> ft.Container:
-    """
-    Bordered action button.  `expand=True` for the primary End Turn action
-    so it gets a larger touch target than the secondary Reset button.
-    The color coding (green = safe flow, red = destructive) follows standard
-    UI convention so players don't have to read the label to know the risk.
-    """
-    return ft.Container(
-        expand=expand,
-        content=ft.Row(
-            [
-                ft.Text(symbol, size=14, color=color),
-                ft.Text(
-                    label,
-                    size=12,
-                    color=color,
-                    style=ft.TextStyle(
-                        weight=ft.FontWeight.BOLD,
-                        letter_spacing=1.5,
-                    ),
-                ),
-            ],
-            spacing=6,
-            alignment=ft.MainAxisAlignment.CENTER,
-        ),
-        bgcolor=ft.Colors.with_opacity(0.12, color),
-        border=ft.Border.all(1, ft.Colors.with_opacity(0.50, color)),
-        border_radius=8,
-        padding=ft.Padding.symmetric(horizontal=18, vertical=12),
-        on_click=on_click,
     )
