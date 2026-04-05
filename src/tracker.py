@@ -337,7 +337,10 @@ class NetrunnerTracker:
 
     async def _stat_commit(self, attr, symbol, label, suffix_fn, debounce_ms=800):
         """Async debounce: sleep then commit the batched stat change."""
-        await asyncio.sleep(debounce_ms / 1000)
+        try:
+            await asyncio.sleep(debounce_ms / 1000)
+        except asyncio.CancelledError:
+            return
         d = self._pending_stat.get(attr, 0)
         if d != 0:
             val = getattr(self.state, attr)

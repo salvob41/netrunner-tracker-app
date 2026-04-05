@@ -134,19 +134,32 @@ def split_tap_stat(
             ),
         )
     # Two invisible tap zones: left half = dec, right half = inc
+    # Explicit height + expand ensures zones fill the full 48px cell
     layers.append(
-        ft.Row([
-            ft.GestureDetector(
-                content=ft.Container(bgcolor=ft.Colors.TRANSPARENT),
-                on_tap=on_dec,
-                expand=True,
-            ),
-            ft.GestureDetector(
-                content=ft.Container(bgcolor=ft.Colors.TRANSPARENT),
-                on_tap=on_inc,
-                expand=True,
-            ),
-        ], spacing=0),
+        ft.Container(
+            content=ft.Row([
+                ft.GestureDetector(
+                    content=ft.Container(
+                        bgcolor=ft.Colors.TRANSPARENT,
+                        height=48,
+                        expand=True,
+                    ),
+                    on_tap=on_dec,
+                    expand=True,
+                ),
+                ft.GestureDetector(
+                    content=ft.Container(
+                        bgcolor=ft.Colors.TRANSPARENT,
+                        height=48,
+                        expand=True,
+                    ),
+                    on_tap=on_inc,
+                    expand=True,
+                ),
+            ], spacing=0, expand=True),
+            height=48,
+            expand=True,
+        ),
     )
     cell = ft.Container(
         content=ft.Stack(layers),
@@ -216,9 +229,12 @@ def agenda_bar(
     )
 
     # Center divider + dead zones
-    dead_top = ft.Container(width=bar_width, height=dead_zone // 2)
-    divider_line = ft.Container(width=bar_width, height=2, bgcolor=theme.AGENDA_GOLD)
-    dead_bottom = ft.Container(width=bar_width, height=dead_zone // 2)
+    # Dead zone includes the divider line so total gap = AGENDA_BAR_DEAD_ZONE
+    divider_height = 2
+    dead_zone_padding = max(0, dead_zone - divider_height)
+    dead_top = ft.Container(width=bar_width, height=dead_zone_padding // 2)
+    divider_line = ft.Container(width=bar_width, height=divider_height, bgcolor=theme.AGENDA_GOLD)
+    dead_bottom = ft.Container(width=bar_width, height=dead_zone_padding - dead_zone_padding // 2)
 
     # Runner half (bottom): score near center, fill near center, empty at bottom
     runner_children = [
