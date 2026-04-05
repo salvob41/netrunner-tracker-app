@@ -37,7 +37,7 @@ MU_COLOR      = "#20c0e0"  # cyan — memory units
 LINK_COLOR    = "#40d080"  # teal-green — link strength
 
 # ── Agenda bar dimensions ────────────────────────────────────────────────────
-AGENDA_BAR_WIDTH     = 40   # px — width of the vertical sidebar
+AGENDA_BAR_WIDTH     = 48   # px — width of the vertical sidebar
 AGENDA_BAR_DEAD_ZONE = 8    # px — no-tap zone around the center divider
 
 # ── Text ─────────────────────────────────────────────────────────────────────

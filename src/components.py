@@ -104,7 +104,7 @@ def split_tap_stat(
     value_ref: ft.Text,
     on_dec,
     on_inc,
-    icon_size: int = 18,
+    icon_size: int = 22,
     bg: str | None = None,
     delta_ref: ft.Text | None = None,
 ) -> ft.Container:
@@ -164,7 +164,7 @@ def split_tap_stat(
     cell = ft.Container(
         content=ft.Stack(layers),
         border_radius=8,
-        height=48,
+        height=80,
         bgcolor=bg,
         expand=True,
         animate_opacity=ft.Animation(120, ft.AnimationCurve.EASE_OUT),
@@ -174,108 +174,63 @@ def split_tap_stat(
 
 # ── Vertical agenda bar ──────────────────────────────────────────────────────
 
-def agenda_bar(
-    corp_score: int,
-    runner_score: int,
-    corp_score_ref: ft.Text,
-    runner_score_ref: ft.Text,
-    on_corp_tap,
-    on_corp_long_press,
-    on_runner_tap,
-    on_runner_long_press,
+def _agenda_segment(filled: bool, color: str, width: int) -> ft.Container:
+    """One discrete agenda segment — filled or empty."""
+    return ft.Container(
+        width=width - 8,
+        expand=True,
+        bgcolor=ft.Colors.with_opacity(0.65, color) if filled else ft.Colors.with_opacity(0.08, color),
+        border_radius=3,
+        border=ft.Border.all(
+            1, ft.Colors.with_opacity(0.4, color) if filled
+            else ft.Colors.with_opacity(0.12, color),
+        ),
+    )
+
+
+def agenda_half(
+    score: int,
+    score_ref: ft.Text,
+    color: str,
+    on_tap,
+    on_long_press,
+    score_at_top: bool = True,
+    fill_from_top: bool = True,
 ) -> ft.Container:
     """
-    Vertical tug-of-war agenda bar. Top half = Corp, bottom half = Runner.
-    Fills grow OUTWARD from the center divider.
-    Uses expand so it stretches to match sibling height.
-    Tap to +1, long-press to -1. Dead zone around center.
+    One half of the agenda tug-of-war: 7 discrete segments + score.
+    Place beside its faction panel — STRETCH makes it match panel height.
+    fill_from_top=True: segments fill top-down (corp, outside→center).
+    fill_from_top=False: segments fill bottom-up (runner, outside→center).
     """
-    dead_zone = theme.AGENDA_BAR_DEAD_ZONE
     bar_width = theme.AGENDA_BAR_WIDTH
 
-    # Fill proportions (expand ratios to approximate score/7)
-    corp_fill = max(corp_score, 0)
-    corp_empty = max(7 - corp_score, 0)
-    runner_fill = max(runner_score, 0)
-    runner_empty = max(7 - runner_score, 0)
+    segs = []
+    for i in range(7):
+        if fill_from_top:
+            filled = i < score
+        else:
+            filled = (6 - i) < score
+        segs.append(_agenda_segment(filled, color, bar_width))
 
-    # Corp half (top): empty space at top, fill near center, score near center
-    corp_children = []
-    if corp_empty > 0:
-        corp_children.append(ft.Container(expand=corp_empty))
-    if corp_fill > 0:
-        corp_children.append(ft.Container(
-            expand=corp_fill,
-            bgcolor=ft.Colors.with_opacity(0.6, theme.CORP_ACCENT),
-            border_radius=2,
-        ))
-    corp_children.append(ft.Container(
-        content=corp_score_ref,
-        alignment=ft.Alignment.CENTER,
-        padding=ft.Padding.only(bottom=3),
-    ))
+    children = ([score_ref] + segs) if score_at_top else (segs + [score_ref])
 
-    corp_half = ft.GestureDetector(
+    return ft.GestureDetector(
         content=ft.Container(
             width=bar_width,
             bgcolor=theme.PANEL_BG,
-            border_radius=ft.BorderRadius.only(top_left=6, top_right=6),
+            border_radius=8,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            expand=True,
-            content=ft.Column(corp_children, spacing=0, expand=True),
+            padding=ft.Padding.symmetric(horizontal=4, vertical=4),
+            border=ft.Border.all(1, ft.Colors.with_opacity(0.3, color)),
+            content=ft.Column(
+                children,
+                spacing=2, expand=True,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
         ),
-        on_tap=on_corp_tap,
-        on_long_press_start=on_corp_long_press,
-    )
-
-    # Center divider + dead zones
-    # Dead zone includes the divider line so total gap = AGENDA_BAR_DEAD_ZONE
-    divider_height = 2
-    dead_zone_padding = max(0, dead_zone - divider_height)
-    dead_top = ft.Container(width=bar_width, height=dead_zone_padding // 2)
-    divider_line = ft.Container(width=bar_width, height=divider_height, bgcolor=theme.AGENDA_GOLD)
-    dead_bottom = ft.Container(width=bar_width, height=dead_zone_padding - dead_zone_padding // 2)
-
-    # Runner half (bottom): score near center, fill near center, empty at bottom
-    runner_children = [
-        ft.Container(
-            content=runner_score_ref,
-            alignment=ft.Alignment.CENTER,
-            padding=ft.Padding.only(top=3),
-        ),
-    ]
-    if runner_fill > 0:
-        runner_children.append(ft.Container(
-            expand=runner_fill,
-            bgcolor=ft.Colors.with_opacity(0.6, theme.RUNNER_ACCENT),
-            border_radius=2,
-        ))
-    if runner_empty > 0:
-        runner_children.append(ft.Container(expand=runner_empty))
-
-    runner_half = ft.GestureDetector(
-        content=ft.Container(
-            width=bar_width,
-            bgcolor=theme.PANEL_BG,
-            border_radius=ft.BorderRadius.only(bottom_left=6, bottom_right=6),
-            clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            expand=True,
-            content=ft.Column(runner_children, spacing=0, expand=True),
-        ),
-        on_tap=on_runner_tap,
-        on_long_press_start=on_runner_long_press,
-    )
-
-    return ft.Container(
-        content=ft.Column(
-            [corp_half, dead_top, divider_line, dead_bottom, runner_half],
-            spacing=0,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            expand=True,
-        ),
-        border=ft.Border.all(1, ft.Colors.with_opacity(0.45, theme.AGENDA_GOLD)),
-        border_radius=8,
-        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        on_tap=on_tap,
+        on_long_press_start=on_long_press,
     )
 
 
@@ -304,7 +259,6 @@ def panel(
     bg             = ft.Colors.with_opacity(0.05, color) if active else theme.PANEL_BG
 
     return ft.Container(
-        expand=True,
         bgcolor=bg,
         border_radius=10,
         border=ft.Border.all(
