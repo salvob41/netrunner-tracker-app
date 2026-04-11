@@ -50,6 +50,10 @@ class NetrunnerTracker:
         # Log panel starts collapsed
         self._log_expanded = False
 
+        # Panel rotation state (for shared-device play)
+        self._corp_rotated = False
+        self._runner_rotated = False
+
         self._configure_page()
         self._create_widget_refs()
         self._build_layout()
@@ -113,7 +117,7 @@ class NetrunnerTracker:
         # ── Corp ─────────────────────────────────────────────────────────
         self._corp_clicks_row   = ft.Row(spacing=5)
         self._corp_credits_text = ft.Text(
-            "5", size=28, weight=ft.FontWeight.BOLD, color=theme.CORP_ACCENT,
+            "5", size=36, weight=ft.FontWeight.BOLD, color=theme.CORP_ACCENT,
         )
         self._corp_bad_pub_text = ft.Text(
             "0", size=28, weight=ft.FontWeight.BOLD, color=theme.BAD_PUB_COLOR,
@@ -122,7 +126,7 @@ class NetrunnerTracker:
         # ── Runner ───────────────────────────────────────────────────────
         self._runner_clicks_row   = ft.Row(spacing=5)
         self._runner_credits_text = ft.Text(
-            "5", size=28, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
+            "5", size=36, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
         )
         self._runner_tags_text  = ft.Text(
             "0", size=28, weight=ft.FontWeight.BOLD, color=theme.AGENDA_GOLD,
@@ -214,7 +218,8 @@ class NetrunnerTracker:
         self._turn_banner.border      = ft.Border.all(1, ft.Colors.with_opacity(0.5, color))
 
         # ── Click tokens ─────────────────────────────────────────────────
-        tsz = 40 if self._is_mobile else 44
+        pw = self.page.width or 400
+        tsz = max(32, min(48, int(pw * 0.09))) if self._is_mobile else 44
         self._corp_clicks_row.controls = ui.click_tokens_row(
             s.corp_clicks, 3, theme.CORP_ACCENT,
             self._corp_token_tap if cp else None,
@@ -459,6 +464,8 @@ class NetrunnerTracker:
 
     def _on_reset(self, e) -> None:
         self.state.reset()
+        self._corp_rotated = False
+        self._runner_rotated = False
         for task in self._stat_task.values():
             if task:
                 task.cancel()
@@ -479,12 +486,94 @@ class NetrunnerTracker:
         )
         self.page.update()
 
+    # ── Action button handlers ─────────────────────────────────────────────────
+
+    def _action_spend_click(self, player: str) -> bool:
+        """Spend a click for an action. Returns False if no clicks left."""
+        clicks = getattr(self.state, f"{player}_clicks")
+        if clicks <= 0:
+            return False
+        self.state.spend_click(player)
+        return True
+
+    def _on_corp_draw(self, e) -> None:
+        if not self._action_spend_click("corp"):
+            return
+        remaining = self.state.corp_clicks
+        self.log.record(
+            self.state.round, "corp", theme.SYM_CLICK,
+            f"Drew a card ({remaining}/{GameState.CORP_CLICKS_PER_TURN})",
+        )
+        self.refresh()
+
+    def _on_corp_take_credit(self, e) -> None:
+        if not self._action_spend_click("corp"):
+            return
+        self.state.adjust("corp_credits", +1)
+        remaining = self.state.corp_clicks
+        creds = self.state.corp_credits
+        self.log.record(
+            self.state.round, "corp", theme.SYM_CREDIT,
+            f"Took 1¢ → {creds}¢ ({remaining}/{GameState.CORP_CLICKS_PER_TURN})",
+        )
+        self.refresh()
+
+    def _on_runner_draw(self, e) -> None:
+        if not self._action_spend_click("runner"):
+            return
+        remaining = self.state.runner_clicks
+        self.log.record(
+            self.state.round, "runner", theme.SYM_CLICK,
+            f"Drew a card ({remaining}/{GameState.RUNNER_CLICKS_PER_TURN})",
+        )
+        self.refresh()
+
+    def _on_runner_take_credit(self, e) -> None:
+        if not self._action_spend_click("runner"):
+            return
+        self.state.adjust("runner_credits", +1)
+        remaining = self.state.runner_clicks
+        creds = self.state.runner_credits
+        self.log.record(
+            self.state.round, "runner", theme.SYM_CREDIT,
+            f"Took 1¢ → {creds}¢ ({remaining}/{GameState.RUNNER_CLICKS_PER_TURN})",
+        )
+        self.refresh()
+
+    def _on_rotate_corp(self, e) -> None:
+        self._corp_rotated = not self._corp_rotated
+        self.refresh()
+
+    def _on_rotate_runner(self, e) -> None:
+        self._runner_rotated = not self._runner_rotated
+        self.refresh()
+
     # ── Panel builders ────────────────────────────────────────────────────────
 
     def _build_corp_panel(self, active: bool) -> ft.Container:
-        """Corp panel: clicks + credits | bad pub."""
+        """Corp panel: clicks + action buttons + credits | bad pub."""
+        tsz = 44 if self._is_mobile else 48
         clicks_section = ft.Container(
-            content=self._corp_clicks_row,
+            content=ft.Row(
+                [
+                    self._corp_clicks_row,
+                    ft.Container(expand=True),
+                    *(
+                        [
+                            ui.action_button(
+                                "Draw", theme.ASSET_HAND, theme.CORP_ACCENT,
+                                self._on_corp_draw,
+                            ),
+                            ui.action_button(
+                                "+¢", theme.ASSET_CREDIT, theme.CORP_ACCENT,
+                                self._on_corp_take_credit,
+                            ),
+                        ] if active else []
+                    ),
+                ],
+                spacing=4,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
             padding=ft.Padding.only(bottom=4),
             opacity=1.0 if active else 0.35,
         )
@@ -503,6 +592,7 @@ class NetrunnerTracker:
                 self._corp_credits_text, cred_dec, cred_inc,
                 bg=ft.Colors.with_opacity(0.06, theme.CORP_ACCENT),
                 delta_ref=self._delta_refs["corp_credits"],
+                expand=3, icon_size=28, height=110,
             ),
             ft.Container(width=1, height=22,
                          bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)),
@@ -515,12 +605,33 @@ class NetrunnerTracker:
         ], spacing=3)
 
         return ui.panel("CORP", theme.CORP_ACCENT,
-                        [clicks_section, stats], active=active)
+                        [clicks_section, stats], active=active,
+                        rotated=self._corp_rotated,
+                        on_rotate=self._on_rotate_corp)
 
     def _build_runner_panel(self, active: bool) -> ft.Container:
-        """Runner panel: clicks + 2 rows of stats."""
+        """Runner panel: clicks + action buttons + 2 rows of stats."""
         clicks_section = ft.Container(
-            content=self._runner_clicks_row,
+            content=ft.Row(
+                [
+                    self._runner_clicks_row,
+                    ft.Container(expand=True),
+                    *(
+                        [
+                            ui.action_button(
+                                "Draw", theme.ASSET_HAND, theme.RUNNER_ACCENT,
+                                self._on_runner_draw,
+                            ),
+                            ui.action_button(
+                                "+¢", theme.ASSET_CREDIT, theme.RUNNER_ACCENT,
+                                self._on_runner_take_credit,
+                            ),
+                        ] if active else []
+                    ),
+                ],
+                spacing=4,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
             padding=ft.Padding.only(bottom=4),
             opacity=1.0 if active else 0.35,
         )
@@ -547,6 +658,7 @@ class NetrunnerTracker:
                 self._runner_credits_text, cred_dec, cred_inc,
                 bg=ft.Colors.with_opacity(0.06, theme.RUNNER_ACCENT),
                 delta_ref=self._delta_refs["runner_credits"],
+                expand=2, icon_size=28, height=110,
             ),
             ft.Container(width=1, height=22,
                          bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)),
@@ -609,7 +721,9 @@ class NetrunnerTracker:
         ], spacing=3)
 
         return ui.panel("RUNNER", theme.RUNNER_ACCENT,
-                        [clicks_section, row1, row2], active=active)
+                        [clicks_section, row1, row2], active=active,
+                        rotated=self._runner_rotated,
+                        on_rotate=self._on_rotate_runner)
 
     # ── Agenda bar ────────────────────────────────────────────────────────────
 

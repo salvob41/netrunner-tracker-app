@@ -10,6 +10,8 @@ pixels in the image with `color`, giving us faction-coloured icons from
 neutral NSG assets.
 """
 
+import math
+
 import flet as ft
 import theme
 
@@ -107,11 +109,15 @@ def split_tap_stat(
     icon_size: int = 22,
     bg: str | None = None,
     delta_ref: ft.Text | None = None,
+    expand: int | bool = True,
+    height: int = 80,
 ) -> ft.Container:
     """
     Compact stat cell: icon (left) + value (centered) + optional delta badge.
     Tap left half = decrement, tap right half = increment.
     delta_ref: if provided, shown as a small +N/-N badge in the top-right.
+    expand: flex weight for Row layout (e.g. 2 = twice the space of expand=1).
+    height: cell height in px.
     """
     icon = ft.Container(
         content=nsg_icon(asset_path, icon_size,
@@ -134,14 +140,14 @@ def split_tap_stat(
             ),
         )
     # Two invisible tap zones: left half = dec, right half = inc
-    # Explicit height + expand ensures zones fill the full 48px cell
+    tap_h = max(48, height - 16)
     layers.append(
         ft.Container(
             content=ft.Row([
                 ft.GestureDetector(
                     content=ft.Container(
                         bgcolor=ft.Colors.TRANSPARENT,
-                        height=48,
+                        height=tap_h,
                         expand=True,
                     ),
                     on_tap=on_dec,
@@ -150,26 +156,59 @@ def split_tap_stat(
                 ft.GestureDetector(
                     content=ft.Container(
                         bgcolor=ft.Colors.TRANSPARENT,
-                        height=48,
+                        height=tap_h,
                         expand=True,
                     ),
                     on_tap=on_inc,
                     expand=True,
                 ),
             ], spacing=0, expand=True),
-            height=48,
+            height=tap_h,
             expand=True,
         ),
     )
     cell = ft.Container(
         content=ft.Stack(layers),
         border_radius=8,
-        height=80,
+        height=height,
         bgcolor=bg,
-        expand=True,
+        expand=expand,
         animate_opacity=ft.Animation(120, ft.AnimationCurve.EASE_OUT),
     )
     return cell
+
+
+# ── Action button ────────────────────────────────────────────────────────────
+
+def action_button(
+    label: str,
+    icon_path: str,
+    color: str,
+    on_click,
+    icon_size: int = 14,
+) -> ft.Container:
+    """Compact action button with icon + label (e.g. 'Draw', '+ ¢')."""
+    return ft.Container(
+        content=ft.Column(
+            [
+                nsg_icon(icon_path, icon_size, color),
+                ft.Text(
+                    label, size=8, color=color,
+                    style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    text_align=ft.TextAlign.CENTER,
+                    no_wrap=True,
+                ),
+            ],
+            spacing=2,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        bgcolor=ft.Colors.with_opacity(0.10, color),
+        border=ft.Border.all(1, ft.Colors.with_opacity(0.35, color)),
+        border_radius=6,
+        padding=ft.Padding.symmetric(horizontal=6, vertical=4),
+        on_click=on_click,
+        width=44,
+    )
 
 
 # ── Vertical agenda bar ──────────────────────────────────────────────────────
@@ -247,6 +286,8 @@ def panel(
     color: str,
     controls: list,
     active: bool = False,
+    rotated: bool = False,
+    on_rotate=None,
 ) -> ft.Container:
     """
     Faction panel card with a left-edge accent stripe.
@@ -254,9 +295,65 @@ def panel(
     `active=True` brightens the border and adds a subtle background tint so
     the current player's panel is immediately obvious without needing to read
     the turn banner.  The inactive panel stays visible but clearly secondary.
+    `rotated=True` flips the panel content 180° for shared-device play.
+    `on_rotate` callback for the rotate toggle button.
     """
     border_opacity = 0.85 if active else 0.28
     bg             = ft.Colors.with_opacity(0.05, color) if active else theme.PANEL_BG
+
+    rotate_btn = ft.GestureDetector(
+        content=ft.Container(
+            content=ft.Text(
+                "⟳", size=14,
+                color=ft.Colors.with_opacity(0.5 if not rotated else 0.9, color),
+            ),
+            padding=ft.Padding.symmetric(horizontal=4, vertical=0),
+        ),
+        on_tap=on_rotate,
+    ) if on_rotate else ft.Container()
+
+    header = ft.Row(
+        [
+            ft.Container(
+                width=3, height=14, bgcolor=color, border_radius=2,
+            ),
+            ft.Text(
+                title,
+                size=11,
+                color=color,
+                style=ft.TextStyle(
+                    weight=ft.FontWeight.BOLD,
+                    letter_spacing=2.0,
+                ),
+            ),
+            ft.Container(expand=True),
+            # "YOUR TURN" pill badge
+            ft.Container(
+                visible=active,
+                content=ft.Text(
+                    "YOUR TURN",
+                    size=8,
+                    color=color,
+                    style=ft.TextStyle(
+                        weight=ft.FontWeight.BOLD,
+                        letter_spacing=1.0,
+                    ),
+                ),
+                bgcolor=ft.Colors.with_opacity(0.15, color),
+                border=ft.Border.all(1, ft.Colors.with_opacity(0.5, color)),
+                border_radius=4,
+                padding=ft.Padding.symmetric(horizontal=5, vertical=1),
+            ),
+            rotate_btn,
+        ],
+        spacing=6,
+        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+    )
+
+    inner = ft.Column(
+        [header, *controls],
+        spacing=5,
+    )
 
     return ft.Container(
         bgcolor=bg,
@@ -266,47 +363,9 @@ def panel(
             ft.Colors.with_opacity(border_opacity, color),
         ),
         padding=8,
-        content=ft.Column(
-            [
-                ft.Row(
-                    [
-                        ft.Container(
-                            width=3, height=14, bgcolor=color, border_radius=2,
-                        ),
-                        ft.Text(
-                            title,
-                            size=11,
-                            color=color,
-                            style=ft.TextStyle(
-                                weight=ft.FontWeight.BOLD,
-                                letter_spacing=2.0,
-                            ),
-                        ),
-                        ft.Container(expand=True),
-                        # "YOUR TURN" pill badge
-                        ft.Container(
-                            visible=active,
-                            content=ft.Text(
-                                "YOUR TURN",
-                                size=8,
-                                color=color,
-                                style=ft.TextStyle(
-                                    weight=ft.FontWeight.BOLD,
-                                    letter_spacing=1.0,
-                                ),
-                            ),
-                            bgcolor=ft.Colors.with_opacity(0.15, color),
-                            border=ft.Border.all(1, ft.Colors.with_opacity(0.5, color)),
-                            border_radius=4,
-                            padding=ft.Padding.symmetric(horizontal=5, vertical=1),
-                        ),
-                    ],
-                    spacing=6,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-                *controls,
-            ],
-            spacing=5,
+        content=ft.Container(
+            content=inner,
+            rotate=ft.Rotate(math.pi) if rotated else None,
         ),
     )
 
