@@ -552,7 +552,6 @@ class NetrunnerTracker:
 
     def _build_corp_panel(self, active: bool) -> ft.Container:
         """Corp panel: clicks + action buttons + credits | bad pub."""
-        tsz = 44 if self._is_mobile else 48
         clicks_section = ft.Container(
             content=ft.Row(
                 [

@@ -140,14 +140,14 @@ def split_tap_stat(
             ),
         )
     # Two invisible tap zones: left half = dec, right half = inc
-    tap_h = max(48, height - 16)
+    # Use full cell height so the entire surface is tappable
     layers.append(
         ft.Container(
             content=ft.Row([
                 ft.GestureDetector(
                     content=ft.Container(
                         bgcolor=ft.Colors.TRANSPARENT,
-                        height=tap_h,
+                        height=height,
                         expand=True,
                     ),
                     on_tap=on_dec,
@@ -156,14 +156,14 @@ def split_tap_stat(
                 ft.GestureDetector(
                     content=ft.Container(
                         bgcolor=ft.Colors.TRANSPARENT,
-                        height=tap_h,
+                        height=height,
                         expand=True,
                     ),
                     on_tap=on_inc,
                     expand=True,
                 ),
             ], spacing=0, expand=True),
-            height=tap_h,
+            height=height,
             expand=True,
         ),
     )
