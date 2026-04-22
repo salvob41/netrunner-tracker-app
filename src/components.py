@@ -100,6 +100,31 @@ def click_tokens_row(
 
 # ── Split-tap stat ───────────────────────────────────────────────────────────
 
+def _split_tap_zone_handler(on_dec, on_inc):
+    """
+    One full-cell hit target: x < half width = decrement, else increment.
+
+    Previously we used two side-by-side GestureDetectors. Flutter’s gesture
+    arena then competes between siblings, and very fast taps can be dropped
+    (you see 3 counts instead of 4). A single recognizer + local x fixes that.
+
+    We use on_tap_down (not on_tap) so each touch-down is attributed immediately
+    without waiting for double-tap or full tap completion.
+    """
+    def on_tap_down(e: ft.TapEvent[ft.GestureDetector]):
+        pos = e.local_position
+        w = float(getattr(e.control, "width", None) or 0.0)
+        if pos is not None and w > 0.0:
+            if pos.x < w * 0.5:
+                on_dec(e)
+            else:
+                on_inc(e)
+        else:
+            on_inc(e)
+
+    return on_tap_down
+
+
 def split_tap_stat(
     asset_path: str,
     asset_color: str,
@@ -114,7 +139,8 @@ def split_tap_stat(
 ) -> ft.Container:
     """
     Compact stat cell: icon (left) + value (centered) + optional delta badge.
-    Tap left half = decrement, tap right half = increment.
+    Touch down on left half = decrement, on right half = increment
+    (on_tap_down + single detector — reliable for very fast tapping).
     delta_ref: if provided, shown as a small +N/-N badge in the top-right.
     expand: flex weight for Row layout (e.g. 2 = twice the space of expand=1).
     height: cell height in px.
@@ -139,30 +165,19 @@ def split_tap_stat(
                 padding=ft.Padding.only(right=6, top=4),
             ),
         )
-    # Two invisible tap zones: left half = dec, right half = inc
-    # Use full cell height so the entire surface is tappable
+    # Single full-cell detector (see _split_tap_zone_handler) — not two
+    # sibling GestureDetectors, which can drop rapid taps in the arena.
     layers.append(
         ft.Container(
-            content=ft.Row([
-                ft.GestureDetector(
-                    content=ft.Container(
-                        bgcolor=ft.Colors.TRANSPARENT,
-                        height=height,
-                        expand=True,
-                    ),
-                    on_tap=on_dec,
+            content=ft.GestureDetector(
+                content=ft.Container(
+                    bgcolor=ft.Colors.TRANSPARENT,
+                    height=height,
                     expand=True,
                 ),
-                ft.GestureDetector(
-                    content=ft.Container(
-                        bgcolor=ft.Colors.TRANSPARENT,
-                        height=height,
-                        expand=True,
-                    ),
-                    on_tap=on_inc,
-                    expand=True,
-                ),
-            ], spacing=0, expand=True),
+                on_tap_down=_split_tap_zone_handler(on_dec, on_inc),
+                expand=True,
+            ),
             height=height,
             expand=True,
         ),

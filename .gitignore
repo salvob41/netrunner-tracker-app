@@ -66,6 +66,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+# Local automation (not versioned)
+scripts/
+
 # Tooling (local overrides)
 *.local.json
 .superpowers/
