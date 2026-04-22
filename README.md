@@ -6,11 +6,13 @@ A single-screen game state tracker for [Android: Netrunner](https://nullsignal.g
 
 ## Screenshots (mobile)
 
-Narrow, phone-style viewport. Start of a match, agenda pips in play, and the event log opened after a few points.
+Phone-width viewport. Start and agenda pips, then a **cropped** full-width strip so log lines are readable, and Runner turn (banner, YOUR TURN, **END RUNNER TURN**).
 
-| Start | Scoring | Log |
-| --- | --- | --- |
-| ![Start of match, Corp turn round 1](docs/screenshot-mobile-initial.png) | ![Agenda pips on the sidebar](docs/screenshot-mobile-agenda.png) | ![Game log expanded with recent events](docs/screenshot-mobile-logs.png) |
+| Start of match (Corp) | Agenda scoring (sidebar) |
+| --- | --- |
+| ![Start of match, Corp turn round 1](docs/screenshot-mobile-initial.png) | ![Agenda pips on the sidebar](docs/screenshot-mobile-agenda.png) |
+| **Game log** (open, showing lines) | **Runner turn** (active panel) |
+| ![Game log with event lines and NSG-style icons](docs/screenshot-mobile-logs.png) | ![Runner turn banner and actions](docs/screenshot-mobile-runner-turn.png) |
 
 ## Why this exists
 
@@ -37,15 +39,13 @@ pip install flet
 # Desktop app
 flet run src/main.py
 
-# Web app (for manual testing or to regenerate README screenshots, port 8550)
+# Web (browser)
 cd src && python -c "
 import flet as ft
 from tracker import NetrunnerTracker
 def main(page): NetrunnerTracker(page)
 ft.run(main, assets_dir='assets', view=ft.AppView.WEB_BROWSER, port=8550)
 "
-# From project root, with Playwright: pip install playwright && python -m playwright install chromium
-# python scripts/capture_readme_screens.py
 ```
 
 ## Building
