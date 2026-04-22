@@ -21,9 +21,9 @@ Netrunner has a lot of game state to track: clicks, credits, agenda points, tags
 ## Features
 
 - **One-screen layout** — Both Corp and Runner panels always visible, no scrolling during play
-- **Split-tap stats** — One touch target per stat: touch on the right side +1, on the left −1 (reliable for very fast drumming; no double tiny hit targets)
+- **Split-tap stats** — Left half of a stat = −1, right half = +1 (separate `on_tap_down` zones; no position math, which is unreliable in Flet when `width` is missing in events)
 - **Debounced logging** — Rapid credit tweaks batch into one log line after you pause (~1s for credits, 0.8s for other stats) with a live +N/−N delta badge while you are adjusting
-- **Click tokens** — Tap filled tokens to spend, tap spent tokens to restore
+- **Click tokens** — Tap filled tokens to spend, tap spent tokens to restore; **allotted** extra clicks from effects appear as ghosted, softer filled chips after your normal 3/4
 - **Agenda tug-of-war** — Vertical sidebar bar where Corp fills upward and Runner fills downward from a center divider
 - **Faction theming** — Corp in electric blue, Runner in molten orange, agenda in gold. Active player's panel glows
 - **Game log** — Collapsible event history with NSG icons, newest events first
@@ -55,6 +55,14 @@ flet build apk     # Android APK → build/apk/
 flet build web     # Static web → build/web/
 flet build macos   # macOS app
 ```
+
+### Android: “package conflicts with an existing package”
+
+Android only lets you **update** an app in place if the new APK is signed with the **same key** as the one already on the device. The GitHub Action release APKs are, by default, signed with a **one-off** key per CI run, and a local `flet build apk` is signed differently again — the **app id** is the same, but the **signatures** do not match, and the installer refuses with that error (or *App not installed*).
+
+**Fix right now:** uninstall **Netrunner Tracker** (or the previous install) from the phone, then install the new APK. You are not in a “Play Store” upgrade path; it is a fresh install of the new build.
+
+**For future releases that update in place** without uninstalling, use one **upload keystore** for every build and [configure it for Flet](https://flet.dev/docs/publish/android/) (see [environment variables](https://flet.dev/docs/reference/environment-variables) such as `FLET_ANDROID_SIGNING_KEY_STORE`, etc.). In this repository you can add GitHub **Actions secrets** so CI signs release APKs consistently: `ANDROID_KEYSTORE_B64` (base64 of your `.jks` file), `ANDROID_KEYSTORE_PASSWORD`, optionally `ANDROID_KEY_PASSWORD`, and `ANDROID_KEY_ALIAS` (often `upload`). The workflow in `.github/workflows/build-apk.yml` reads those when set.
 
 ## Architecture
 

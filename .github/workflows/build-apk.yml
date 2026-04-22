@@ -33,6 +33,31 @@ jobs:
       - name: Install Flet
         run: pip install flet==0.82.2
 
+      # If ANDROID_KEYSTORE_B64 and passwords are not set, each run uses a different
+      # ad‑hoc key → in‑place upgrades from prior APKs fail; uninstall the old app first
+      # or add repo secrets and keep the same .jks for all releases. See README.
+      - name: Optional upload keystore (for consistent signatures)
+        run: |
+          if [ -n "$B64" ]; then
+            echo "$B64" | base64 -d > "$RUNNER_TEMP/netrunner-upload.jks"
+            {
+              echo "FLET_ANDROID_SIGNING_KEY_STORE=$RUNNER_TEMP/netrunner-upload.jks"
+              echo "FLET_ANDROID_SIGNING_KEY_STORE_PASSWORD=$STORE_PASS"
+            } >> "$GITHUB_ENV"
+            if [ -n "$KEY_PASS" ]; then
+              echo "FLET_ANDROID_SIGNING_KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
+            fi
+            echo "FLET_ANDROID_SIGNING_KEY_ALIAS=${ALIAS:-upload}" >> "$GITHUB_ENV"
+            echo "Release keystore will be used for signing."
+          else
+            echo "No ANDROID_KEYSTORE_B64 secret — new debug-style signature each build (uninstall old APK to upgrade)."
+          fi
+        env:
+          B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+
       - name: Build APK
         run: flet build apk
 

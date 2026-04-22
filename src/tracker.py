@@ -34,6 +34,9 @@ class NetrunnerTracker:
         self.log = GameLog()
         self.log.record(0, "game", theme.SYM_TURN, "Game started")
 
+        # Track expanded state for individual stats
+        self._expanded_stats = set()
+
         # Generic stat debounce state — keyed by attr name
         self._pending_stat: dict = {}   # attr → accumulated delta
         self._stat_task: dict = {}      # attr → asyncio task
@@ -115,7 +118,10 @@ class NetrunnerTracker:
         )
 
         # ── Corp ─────────────────────────────────────────────────────────
-        self._corp_clicks_row   = ft.Row(spacing=5)
+        self._corp_clicks_row = ft.Row(spacing=5)
+        self._corp_extra_btn = ui.extra_allotted_click_button(
+            theme.CORP_ACCENT, self._on_add_corp_extra,
+        )
         self._corp_credits_text = ft.Text(
             "5", size=36, weight=ft.FontWeight.BOLD, color=theme.CORP_ACCENT,
         )
@@ -124,7 +130,10 @@ class NetrunnerTracker:
         )
 
         # ── Runner ───────────────────────────────────────────────────────
-        self._runner_clicks_row   = ft.Row(spacing=5)
+        self._runner_clicks_row = ft.Row(spacing=5)
+        self._runner_extra_btn = ui.extra_allotted_click_button(
+            theme.RUNNER_ACCENT, self._on_add_runner_extra,
+        )
         self._runner_credits_text = ft.Text(
             "5", size=36, weight=ft.FontWeight.BOLD, color=theme.RUNNER_ACCENT,
         )
@@ -202,6 +211,26 @@ class NetrunnerTracker:
 
     # ── Refresh ───────────────────────────────────────────────────────────────
 
+    def _expand_stat(self, name: str):
+        self._expanded_stats.add(name)
+        self.refresh()
+
+    def _on_add_corp_extra(self, e):
+        self.state.corp_extra_clicks = (self.state.corp_extra_clicks + 1) % 4
+        self.log.record(
+            self.state.round, "corp", theme.SYM_CLICK,
+            f"Extra clicks: {self.state.corp_extra_clicks}",
+        )
+        self.refresh()
+
+    def _on_add_runner_extra(self, e):
+        self.state.runner_extra_clicks = (self.state.runner_extra_clicks + 1) % 4
+        self.log.record(
+            self.state.round, "runner", theme.SYM_CLICK,
+            f"Extra clicks: {self.state.runner_extra_clicks}",
+        )
+        self.refresh()
+
     def refresh(self) -> None:
         """
         Push GameState into every widget ref, then page.update().
@@ -224,11 +253,13 @@ class NetrunnerTracker:
             s.corp_clicks, 3, theme.CORP_ACCENT,
             self._corp_token_tap if cp else None,
             token_size=tsz,
+            extra_clicks=s.corp_extra_clicks,
         )
         self._runner_clicks_row.controls = ui.click_tokens_row(
             s.runner_clicks, 4, theme.RUNNER_ACCENT,
             self._runner_token_tap if not cp else None,
             token_size=tsz,
+            extra_clicks=s.runner_extra_clicks,
         )
 
         # ── Corp stats ───────────────────────────────────────────────────
@@ -604,6 +635,9 @@ class NetrunnerTracker:
 
     def _build_corp_panel(self, active: bool) -> ft.Container:
         """Corp panel: clicks + action buttons + credits | bad pub."""
+        
+        is_bp_expanded = "corp_bad_pub" in self._expanded_stats
+        
         clicks_section = ft.Container(
             content=ft.Row(
                 [
@@ -637,31 +671,58 @@ class NetrunnerTracker:
             "corp_bad_pub", symbol=theme.SYM_BAD_PUB, label="bad pub",
         )
 
-        stats = ft.Row([
-            ui.split_tap_stat(
-                theme.ASSET_CREDIT, theme.CORP_ACCENT,
-                self._corp_credits_text, cred_dec, cred_inc,
-                bg=ft.Colors.with_opacity(0.06, theme.CORP_ACCENT),
-                delta_ref=self._delta_refs["corp_credits"],
-                expand=3, icon_size=28, height=110,
-            ),
-            ft.Container(width=1, height=22,
-                         bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)),
-            ui.split_tap_stat(
+        cred_stat = ui.split_tap_stat(
+            theme.ASSET_CREDIT, theme.CORP_ACCENT,
+            self._corp_credits_text, cred_dec, cred_inc,
+            bg=ft.Colors.with_opacity(0.06, theme.CORP_ACCENT),
+            delta_ref=self._delta_refs["corp_credits"],
+            expand=2 if is_bp_expanded else 1, icon_size=28, height=86,
+        )
+
+        stats_row_items = [cred_stat]
+        collapsed_icons = []
+
+        if is_bp_expanded:
+            bp_stat = ui.split_tap_stat(
                 theme.ASSET_BAD_PUB, theme.BAD_PUB_COLOR,
                 self._corp_bad_pub_text, bp_dec, bp_inc,
                 bg=ft.Colors.with_opacity(0.06, theme.BAD_PUB_COLOR),
                 delta_ref=self._delta_refs["corp_bad_pub"],
-            ),
-        ], spacing=3)
+                height=86,
+                expand=1,
+            )
+            stats_row_items.extend([
+                ft.Container(width=1, height=22, bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)),
+                bp_stat
+            ])
+        else:
+            collapsed_icons.append(
+                ft.Container(
+                    content=ui.nsg_icon(theme.ASSET_BAD_PUB, 20, theme.BAD_PUB_COLOR),
+                    on_click=lambda e: self._expand_stat("corp_bad_pub"),
+                    padding=6,
+                )
+            )
 
-        return ui.panel("CORP", theme.CORP_ACCENT,
-                        [clicks_section, stats], active=active,
+        stats = ft.Row(stats_row_items, spacing=3)
+
+        bottom_actions = ft.Row([
+            *collapsed_icons,
+            ft.Container(expand=True),
+            self._corp_extra_btn,
+        ], spacing=4)
+
+        content = [clicks_section, stats, bottom_actions]
+            
+        panel = ui.panel("CORP", theme.CORP_ACCENT,
+                        content, active=active,
                         rotated=self._corp_rotated,
                         on_rotate=self._on_rotate_corp)
+        return panel
 
     def _build_runner_panel(self, active: bool) -> ft.Container:
-        """Runner panel: clicks + action buttons + 2 rows of stats."""
+        """Runner panel: clicks + action buttons + dynamic stats grid."""
+        
         clicks_section = ft.Container(
             content=ft.Row(
                 [
@@ -702,33 +763,6 @@ class NetrunnerTracker:
             "runner_brain", +1, symbol=theme.SYM_BRAIN, label="core dmg",
             suffix_fn=lambda s: f"(hand={s.runner_max_hand_size})",
         )
-
-        row1 = ft.Row([
-            ui.split_tap_stat(
-                theme.ASSET_CREDIT, theme.RUNNER_ACCENT,
-                self._runner_credits_text, cred_dec, cred_inc,
-                bg=ft.Colors.with_opacity(0.06, theme.RUNNER_ACCENT),
-                delta_ref=self._delta_refs["runner_credits"],
-                expand=2, icon_size=28, height=110,
-            ),
-            ft.Container(width=1, height=22,
-                         bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)),
-            ui.split_tap_stat(
-                theme.ASSET_TAG, theme.AGENDA_GOLD,
-                self._runner_tags_text, tag_dec, tag_inc,
-                bg=ft.Colors.with_opacity(0.06, theme.AGENDA_GOLD),
-                delta_ref=self._delta_refs["runner_tags"],
-            ),
-            ft.Container(width=1, height=22,
-                         bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)),
-            ui.split_tap_stat(
-                theme.ASSET_CORE_DAMAGE, theme.PURPLE_ACCENT,
-                self._runner_brain_text, core_dec, core_inc,
-                bg=ft.Colors.with_opacity(0.06, theme.PURPLE_ACCENT),
-                delta_ref=self._delta_refs["runner_brain"],
-            ),
-        ], spacing=3)
-
         hand_dec = self._stat_adjuster(
             "runner_max_hand_bonus", -1, -5, 10,
             symbol=theme.SYM_HAND, label="hand bonus",
@@ -746,35 +780,78 @@ class NetrunnerTracker:
             "runner_link", symbol=theme.SYM_LINK, label="link",
         )
 
-        row2 = ft.Row([
-            ui.split_tap_stat(
-                theme.ASSET_HAND, theme.RUNNER_ACCENT,
-                self._runner_hand_text, hand_dec, hand_inc,
-                bg=ft.Colors.with_opacity(0.06, theme.RUNNER_ACCENT),
-                delta_ref=self._delta_refs["runner_max_hand_bonus"],
-            ),
-            ft.Container(width=1, height=22,
-                         bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)),
-            ui.split_tap_stat(
-                theme.ASSET_MU, theme.MU_COLOR,
-                self._runner_mu_text, mu_dec, mu_inc,
-                bg=ft.Colors.with_opacity(0.06, theme.MU_COLOR),
-                delta_ref=self._delta_refs["runner_mu"],
-            ),
-            ft.Container(width=1, height=22,
-                         bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)),
-            ui.split_tap_stat(
-                theme.ASSET_LINK, theme.LINK_COLOR,
-                self._runner_link_text, link_dec, link_inc,
-                bg=ft.Colors.with_opacity(0.06, theme.LINK_COLOR),
-                delta_ref=self._delta_refs["runner_link"],
-            ),
-        ], spacing=3)
+        opt_stats_def = [
+            ("runner_tags", theme.ASSET_TAG, theme.AGENDA_GOLD, self._runner_tags_text, tag_dec, tag_inc, self._delta_refs["runner_tags"]),
+            ("runner_brain", theme.ASSET_CORE_DAMAGE, theme.PURPLE_ACCENT, self._runner_brain_text, core_dec, core_inc, self._delta_refs["runner_brain"]),
+            ("runner_max_hand_bonus", theme.ASSET_HAND, theme.RUNNER_ACCENT, self._runner_hand_text, hand_dec, hand_inc, self._delta_refs["runner_max_hand_bonus"]),
+            ("runner_mu", theme.ASSET_MU, theme.MU_COLOR, self._runner_mu_text, mu_dec, mu_inc, self._delta_refs["runner_mu"]),
+            ("runner_link", theme.ASSET_LINK, theme.LINK_COLOR, self._runner_link_text, link_dec, link_inc, self._delta_refs["runner_link"]),
+        ]
 
-        return ui.panel("RUNNER", theme.RUNNER_ACCENT,
-                        [clicks_section, row1, row2], active=active,
-                        rotated=self._runner_rotated,
-                        on_rotate=self._on_rotate_runner)
+        opt_expanded = []
+        collapsed_icons = []
+
+        for name, asset, color, text_ref, dec, inc, d_ref in opt_stats_def:
+            if name in self._expanded_stats:
+                opt_expanded.append(
+                    ui.split_tap_stat(
+                        asset, color, text_ref, dec, inc,
+                        bg=ft.Colors.with_opacity(0.06, color),
+                        delta_ref=d_ref, height=86, expand=1
+                    )
+                )
+            else:
+                collapsed_icons.append(
+                    ft.Container(
+                        content=ui.nsg_icon(asset, 20, color),
+                        on_click=lambda e, n=name: self._expand_stat(n),
+                        padding=6
+                    )
+                )
+
+        cred_stat = ui.split_tap_stat(
+            theme.ASSET_CREDIT, theme.RUNNER_ACCENT,
+            self._runner_credits_text, cred_dec, cred_inc,
+            bg=ft.Colors.with_opacity(0.06, theme.RUNNER_ACCENT),
+            delta_ref=self._delta_refs["runner_credits"],
+            expand=2 if len(opt_expanded) > 0 else 1, icon_size=28, height=86,
+        )
+
+        row1_items = [cred_stat]
+        if len(opt_expanded) > 0:
+            row1_items.append(ft.Container(width=1, height=22, bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)))
+            row1_items.append(opt_expanded[0])
+        if len(opt_expanded) > 1:
+            row1_items.append(ft.Container(width=1, height=22, bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)))
+            row1_items.append(opt_expanded[1])
+            
+        row1 = ft.Row(row1_items, spacing=3)
+
+        row2_items = []
+        for i in range(2, len(opt_expanded)):
+            if i > 2:
+                row2_items.append(ft.Container(width=1, height=22, bgcolor=ft.Colors.with_opacity(0.18, theme.TEXT_SECONDARY)))
+            row2_items.append(opt_expanded[i])
+            
+        row2 = ft.Row(row2_items, spacing=3) if row2_items else None
+
+        bottom_actions = ft.Row([
+            *collapsed_icons,
+            ft.Container(expand=True),
+            self._runner_extra_btn,
+        ], spacing=4)
+
+        content = [clicks_section, row1]
+        if row2:
+            content.append(row2)
+        content.append(bottom_actions)
+
+        container = ui.panel("RUNNER", theme.RUNNER_ACCENT,
+                             content, active=active,
+                             rotated=self._runner_rotated,
+                             on_rotate=self._on_rotate_runner)
+        return container
+
 
     # ── Agenda bar ────────────────────────────────────────────────────────────
 
