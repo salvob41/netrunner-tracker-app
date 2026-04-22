@@ -4,9 +4,15 @@ A single-screen game state tracker for [Android: Netrunner](https://nullsignal.g
 
 **[Try it in your browser](https://salvob41.github.io/netrunner-tracker-app/)**
 
-## Screenshots
+## Screenshots (mobile)
 
-![Netrunner Tracker](docs/mockup-v2.png)
+Phone-width viewport. Start and agenda pips, then a **cropped** full-width strip so log lines are readable, and Runner turn (banner, YOUR TURN, **END RUNNER TURN**).
+
+| Start of match (Corp) | Agenda scoring (sidebar) |
+| --- | --- |
+| ![Start of match, Corp turn round 1](docs/screenshot-mobile-initial.png) | ![Agenda pips on the sidebar](docs/screenshot-mobile-agenda.png) |
+| **Game log** (open, showing lines) | **Runner turn** (active panel) |
+| ![Game log with event lines and NSG-style icons](docs/screenshot-mobile-logs.png) | ![Runner turn banner and actions](docs/screenshot-mobile-runner-turn.png) |
 
 ## Why this exists
 
@@ -15,8 +21,8 @@ Netrunner has a lot of game state to track: clicks, credits, agenda points, tags
 ## Features
 
 - **One-screen layout** — Both Corp and Runner panels always visible, no scrolling during play
-- **Split-tap stats** — Tap the right half of any stat to +1, left half to -1. No fiddly buttons
-- **Debounced logging** — Rapid taps batch into a single log entry (1.2s for credits, 0.8s for others) with live +N/-N delta badges
+- **Split-tap stats** — One touch target per stat: touch on the right side +1, on the left −1 (reliable for very fast drumming; no double tiny hit targets)
+- **Debounced logging** — Rapid credit tweaks batch into one log line after you pause (~1s for credits, 0.8s for other stats) with a live +N/−N delta badge while you are adjusting
 - **Click tokens** — Tap filled tokens to spend, tap spent tokens to restore
 - **Agenda tug-of-war** — Vertical sidebar bar where Corp fills upward and Runner fills downward from a center divider
 - **Faction theming** — Corp in electric blue, Runner in molten orange, agenda in gold. Active player's panel glows
@@ -27,12 +33,13 @@ Netrunner has a lot of game state to track: clicks, credits, agenda points, tags
 ## Running locally
 
 ```bash
+python3 -m venv .venv && source .venv/bin/activate   # optional
 pip install flet
 
 # Desktop app
 flet run src/main.py
 
-# Web app (opens browser)
+# Web (browser)
 cd src && python -c "
 import flet as ft
 from tracker import NetrunnerTracker
