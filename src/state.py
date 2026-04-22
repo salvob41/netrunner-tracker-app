@@ -35,6 +35,7 @@ class GameState:
 
         # Corp
         self.corp_clicks    = self.CORP_CLICKS_PER_TURN
+        self.corp_extra_clicks = 0
         self.corp_credits   = self.STARTING_CREDITS
         self.corp_agenda    = 0
         self.corp_drew      = False        # mandatory draw taken this turn?
@@ -42,6 +43,7 @@ class GameState:
 
         # Runner
         self.runner_clicks  = self.RUNNER_CLICKS_PER_TURN
+        self.runner_extra_clicks = 0   # Additional allocated clicks (e.g. from effects)
         self.runner_credits = self.STARTING_CREDITS
         self.runner_agenda  = 0
         self.runner_tags    = 0            # each tag lets Corp retaliate (SYNC, etc.)
@@ -72,20 +74,17 @@ class GameState:
     def end_turn(self) -> None:
         """
         Advance the active_player.
-
-        Corp → Runner: give Runner their clicks (they start fresh).
-        Runner → Corp: new round begins; refill Corp's clicks, reset draw.
-        Clicks are refilled HERE (not in the button handler) so the rule
-        "clicks restore at turn start" is enforced by the model, not the UI.
         """
         if self.active_player == "corp":
             self.active_player  = "runner"
             self.runner_clicks  = self.RUNNER_CLICKS_PER_TURN
+            # self.runner_extra_clicks = 0 # Don't reset automatically
         else:
             self.round         += 1
             self.active_player  = "corp"
             self.corp_clicks    = self.CORP_CLICKS_PER_TURN
             self.corp_drew      = False
+            # self.corp_extra_clicks = 0 # Don't reset automatically
 
     def toggle_mandatory_draw(self) -> None:
         # Corp must draw once per turn before other actions.
@@ -103,10 +102,14 @@ class GameState:
         setattr(self, attr, max(min_val, min(max_val, current + delta)))
 
     def spend_click(self, player: str) -> None:
-        """Spend one click for the given player (tapping a filled token)."""
-        attr = f"{player}_clicks"
-        self.adjust(attr, -1, 0, self.CORP_CLICKS_PER_TURN if player == "corp"
-                    else self.RUNNER_CLICKS_PER_TURN)
+        """Spend one click for the given player. Prefer real clicks, then extra."""
+        clicks = getattr(self, f"{player}_clicks")
+        extra = getattr(self, f"{player}_extra_clicks")
+
+        if clicks > 0:
+            setattr(self, f"{player}_clicks", clicks - 1)
+        elif extra > 0:
+            setattr(self, f"{player}_extra_clicks", extra - 1)
 
     def restore_click(self, player: str) -> None:
         """Restore one click for the given player (tapping a spent token)."""

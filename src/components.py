@@ -38,20 +38,27 @@ def nsg_icon(asset_path: str, size: int, color: str) -> ft.Image:
 
 # ── Click tokens ──────────────────────────────────────────────────────────────
 
-def click_token(filled: bool, color: str, on_tap=None, size: int = 48) -> ft.Control:
+def click_token(filled: bool, color: str, on_tap=None, size: int = 48, ghost: bool = False) -> ft.Control:
     """
     One click token using the official NSG click symbol.
-
-    When on_tap is provided, the token is wrapped in a GestureDetector
-    for tap interaction.  When None (inactive player), it returns a
-    plain Container — no tap handler, used as display-only.
-    size: container size in px (48 desktop, 40 mobile).
+    ghost: allotted / extra clicks — same “filled” role but softer, like a
+    ghosted chip next to the hard-edged turn clicks.
     """
-    asset = theme.ASSET_CLICK if filled else theme.ASSET_CLICK_SPENT
-    icon_color = color if filled else ft.Colors.with_opacity(0.30, color)
-    bg = ft.Colors.with_opacity(0.15, color) if filled else "transparent"
-    border_color = ft.Colors.with_opacity(0.7, color) if filled else ft.Colors.with_opacity(0.22, color)
     icon_size = int(size * 0.55)
+    if ghost and filled:
+        # Allotted bonus click: reads as “available” but clearly not a normal token
+        asset = theme.ASSET_CLICK
+        icon_color = ft.Colors.with_opacity(0.70, color)
+        bg = ft.Colors.with_opacity(0.09, color)
+        border_color = ft.Colors.with_opacity(0.50, color)
+    else:
+        asset = theme.ASSET_CLICK if filled else theme.ASSET_CLICK_SPENT
+        icon_color = color if filled else ft.Colors.with_opacity(0.30, color)
+        bg = ft.Colors.with_opacity(0.15, color) if filled else "transparent"
+        border_color = (
+            ft.Colors.with_opacity(0.7, color) if filled
+            else ft.Colors.with_opacity(0.22, color)
+        )
 
     token_container = ft.Container(
         width=size,
@@ -80,14 +87,13 @@ def click_tokens_row(
     color: str,
     on_token_tap=None,
     token_size: int = 48,
+    extra_clicks: int = 0,
 ) -> list:
     """
     Builds the list of click tokens for a player's clicks section.
-
-    When on_token_tap is None (inactive player), tokens are display-only
-    with no tap handler.  The null guard skips the factory call entirely.
+    extra_clicks: number of extra clicks to append.
     """
-    return [
+    normal_tokens = [
         click_token(
             filled=(i < current),
             color=color,
@@ -96,34 +102,20 @@ def click_tokens_row(
         )
         for i in range(maximum)
     ]
+    extra_tokens = [
+        click_token(
+            filled=True,
+            color=color,
+            on_tap=on_token_tap(maximum + i, True) if on_token_tap else None,
+            size=token_size,
+            ghost=True,
+        )
+        for i in range(extra_clicks)
+    ]
+    return normal_tokens + extra_tokens
 
 
 # ── Split-tap stat ───────────────────────────────────────────────────────────
-
-def _split_tap_zone_handler(on_dec, on_inc):
-    """
-    One full-cell hit target: x < half width = decrement, else increment.
-
-    Previously we used two side-by-side GestureDetectors. Flutter’s gesture
-    arena then competes between siblings, and very fast taps can be dropped
-    (you see 3 counts instead of 4). A single recognizer + local x fixes that.
-
-    We use on_tap_down (not on_tap) so each touch-down is attributed immediately
-    without waiting for double-tap or full tap completion.
-    """
-    def on_tap_down(e: ft.TapEvent[ft.GestureDetector]):
-        pos = e.local_position
-        w = float(getattr(e.control, "width", None) or 0.0)
-        if pos is not None and w > 0.0:
-            if pos.x < w * 0.5:
-                on_dec(e)
-            else:
-                on_inc(e)
-        else:
-            on_inc(e)
-
-    return on_tap_down
-
 
 def split_tap_stat(
     asset_path: str,
@@ -139,8 +131,10 @@ def split_tap_stat(
 ) -> ft.Container:
     """
     Compact stat cell: icon (left) + value (centered) + optional delta badge.
-    Touch down on left half = decrement, on right half = increment
-    (on_tap_down + single detector — reliable for very fast tapping).
+    Left and right **separate** hit targets; each side uses on_tap_down (not
+    on_tap) for quick response. (A single detector that split by
+    e.control.width is unreliable: width is often 0 in event payloads, so
+    the fallback would always run +1 only — broken −1.)
     delta_ref: if provided, shown as a small +N/-N badge in the top-right.
     expand: flex weight for Row layout (e.g. 2 = twice the space of expand=1).
     height: cell height in px.
@@ -165,17 +159,32 @@ def split_tap_stat(
                 padding=ft.Padding.only(right=6, top=4),
             ),
         )
-    # Single full-cell detector (see _split_tap_zone_handler) — not two
-    # sibling GestureDetectors, which can drop rapid taps in the arena.
+    # Two non-overlapping half-width hit targets — no x/width split (width is
+    # often 0 in TapEvent on the client, which broke −1 with a one-detector design).
     layers.append(
         ft.Container(
-            content=ft.GestureDetector(
-                content=ft.Container(
-                    bgcolor=ft.Colors.TRANSPARENT,
-                    height=height,
-                    expand=True,
-                ),
-                on_tap_down=_split_tap_zone_handler(on_dec, on_inc),
+            content=ft.Row(
+                [
+                    ft.GestureDetector(
+                        content=ft.Container(
+                            bgcolor=ft.Colors.TRANSPARENT,
+                            height=height,
+                            expand=True,
+                        ),
+                        on_tap_down=on_dec,
+                        expand=True,
+                    ),
+                    ft.GestureDetector(
+                        content=ft.Container(
+                            bgcolor=ft.Colors.TRANSPARENT,
+                            height=height,
+                            expand=True,
+                        ),
+                        on_tap_down=on_inc,
+                        expand=True,
+                    ),
+                ],
+                spacing=0,
                 expand=True,
             ),
             height=height,
@@ -191,6 +200,34 @@ def split_tap_stat(
         animate_opacity=ft.Animation(120, ft.AnimationCurve.EASE_OUT),
     )
     return cell
+
+
+# ── Allot extra click (small chip, bottom-right of panel) ────────────────────
+
+def extra_allotted_click_button(color: str, on_click) -> ft.Container:
+    """
+    Compact “+ click” control (same footprint for Corp and Runner): small text
+    plus NSG click icon — lighter than the Draw / +¢ action buttons.
+    """
+    return ft.Container(
+        content=ft.Row(
+            [
+                ft.Text(
+                    "+",
+                    size=10,
+                    weight=ft.FontWeight.BOLD,
+                    color=color,
+                ),
+                nsg_icon(theme.ASSET_CLICK, 12, color),
+            ],
+            spacing=2,
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
+        bgcolor=ft.Colors.with_opacity(0.1, color),
+        border_radius=4,
+        padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+        on_click=on_click,
+    )
 
 
 # ── Action button ────────────────────────────────────────────────────────────
@@ -222,7 +259,7 @@ def action_button(
         border_radius=6,
         padding=ft.Padding.symmetric(horizontal=6, vertical=4),
         on_click=on_click,
-        width=44,
+        width=52,
     )
 
 
