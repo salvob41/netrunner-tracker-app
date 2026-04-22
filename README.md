@@ -81,6 +81,8 @@ State is fully decoupled from UI — `state.py` has no Flet imports and encodes 
 
 ## CI/CD
 
+**Versioning (SemVer):** bump the **patch** `z` in `1.x.z` for bugfixes and small UI tweaks; bump **minor** `y` for user-visible new behavior. This repo’s `pyproject.toml` `version` should follow that, then **tag** `v1.x.z` to ship.
+
 GitHub Actions on push to `main`:
 
 - **Build APK** — builds Android APK, uploads as artifact
