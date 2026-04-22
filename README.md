@@ -4,9 +4,13 @@ A single-screen game state tracker for [Android: Netrunner](https://nullsignal.g
 
 **[Try it in your browser](https://salvob41.github.io/netrunner-tracker-app/)**
 
-## Screenshots
+## Screenshots (mobile)
 
-![Netrunner Tracker](docs/mockup-v2.png)
+Narrow, phone-style viewport. Start of a match, agenda pips in play, and the event log opened after a few points.
+
+| Start | Scoring | Log |
+| --- | --- | --- |
+| ![Start of match, Corp turn round 1](docs/screenshot-mobile-initial.png) | ![Agenda pips on the sidebar](docs/screenshot-mobile-agenda.png) | ![Game log expanded with recent events](docs/screenshot-mobile-logs.png) |
 
 ## Why this exists
 
@@ -15,8 +19,8 @@ Netrunner has a lot of game state to track: clicks, credits, agenda points, tags
 ## Features
 
 - **One-screen layout** — Both Corp and Runner panels always visible, no scrolling during play
-- **Split-tap stats** — Tap the right half of any stat to +1, left half to -1. No fiddly buttons
-- **Debounced logging** — Rapid taps batch into a single log entry (1.2s for credits, 0.8s for others) with live +N/-N delta badges
+- **Split-tap stats** — One touch target per stat: touch on the right side +1, on the left −1 (reliable for very fast drumming; no double tiny hit targets)
+- **Debounced logging** — Rapid credit tweaks batch into one log line after you pause (~1s for credits, 0.8s for other stats) with a live +N/−N delta badge while you are adjusting
 - **Click tokens** — Tap filled tokens to spend, tap spent tokens to restore
 - **Agenda tug-of-war** — Vertical sidebar bar where Corp fills upward and Runner fills downward from a center divider
 - **Faction theming** — Corp in electric blue, Runner in molten orange, agenda in gold. Active player's panel glows
@@ -27,18 +31,21 @@ Netrunner has a lot of game state to track: clicks, credits, agenda points, tags
 ## Running locally
 
 ```bash
+python3 -m venv .venv && source .venv/bin/activate   # optional
 pip install flet
 
 # Desktop app
 flet run src/main.py
 
-# Web app (opens browser)
+# Web app (for manual testing or to regenerate README screenshots, port 8550)
 cd src && python -c "
 import flet as ft
 from tracker import NetrunnerTracker
 def main(page): NetrunnerTracker(page)
 ft.run(main, assets_dir='assets', view=ft.AppView.WEB_BROWSER, port=8550)
 "
+# From project root, with Playwright: pip install playwright && python -m playwright install chromium
+# python scripts/capture_readme_screens.py
 ```
 
 ## Building
