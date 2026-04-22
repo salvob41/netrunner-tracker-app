@@ -320,6 +320,55 @@ class NetrunnerTracker:
 
     # ── Event handlers ────────────────────────────────────────────────────────
 
+    def _refresh_clicks_and_credit_after_take(
+        self, player: str,
+    ) -> None:
+        """
+        Update one side's click row + credits + log after Take Credit — avoids
+        full panel rebuild (same as split-tap stat path).
+        """
+        s = self.state
+        pw = self.page.width or 400
+        tsz = max(32, min(48, int(pw * 0.09))) if self._is_mobile else 44
+        corp_turn = s.active_player == "corp"
+        if player == "corp":
+            self._corp_clicks_row.controls = ui.click_tokens_row(
+                s.corp_clicks, 3, theme.CORP_ACCENT,
+                self._corp_token_tap if corp_turn else None,
+                token_size=tsz,
+            )
+            self._corp_credits_text.value = str(s.corp_credits)
+        else:
+            self._runner_clicks_row.controls = ui.click_tokens_row(
+                s.runner_clicks, 4, theme.RUNNER_ACCENT,
+                self._runner_token_tap if not corp_turn else None,
+                token_size=tsz,
+            )
+            self._runner_credits_text.value = str(s.runner_credits)
+        self._refresh_log_inline()
+        self.page.update()
+
+    def _apply_stat_to_display(self, attr: str) -> None:
+        """Update Text refs for one state field — avoids full refresh() on every tap."""
+        s = self.state
+        if attr == "corp_credits":
+            self._corp_credits_text.value = str(s.corp_credits)
+        elif attr == "corp_bad_pub":
+            self._corp_bad_pub_text.value = str(s.corp_bad_pub)
+        elif attr == "runner_credits":
+            self._runner_credits_text.value = str(s.runner_credits)
+        elif attr == "runner_tags":
+            self._runner_tags_text.value = str(s.runner_tags)
+        elif attr == "runner_brain":
+            self._runner_brain_text.value = str(s.runner_brain)
+            self._runner_hand_text.value = str(s.runner_max_hand_size)
+        elif attr == "runner_max_hand_bonus":
+            self._runner_hand_text.value = str(s.runner_max_hand_size)
+        elif attr == "runner_mu":
+            self._runner_mu_text.value = str(s.runner_mu)
+        elif attr == "runner_link":
+            self._runner_link_text.value = str(s.runner_link)
+
     def _stat_adjuster(self, attr: str, delta: int,
                        min_val: int = 0, max_val: int = 99,
                        symbol: str = "·", label: str = "",
@@ -343,7 +392,10 @@ class NetrunnerTracker:
                 else:
                     ref.visible = False
 
-            self.refresh()
+            # Do not call refresh() here — it rebuilds panels and click rows every
+            # tap and makes rapid +1/−1 on credits feel sluggish on mobile.
+            self._apply_stat_to_display(attr)
+            self.page.update()
 
             # Cancel existing debounce and start new one
             if attr in self._stat_task and self._stat_task[attr]:
@@ -516,7 +568,7 @@ class NetrunnerTracker:
             self.state.round, "corp", theme.SYM_CREDIT,
             f"Took 1¢ → {creds}¢ ({remaining}/{GameState.CORP_CLICKS_PER_TURN})",
         )
-        self.refresh()
+        self._refresh_clicks_and_credit_after_take("corp")
 
     def _on_runner_draw(self, e) -> None:
         if not self._action_spend_click("runner"):
@@ -538,7 +590,7 @@ class NetrunnerTracker:
             self.state.round, "runner", theme.SYM_CREDIT,
             f"Took 1¢ → {creds}¢ ({remaining}/{GameState.RUNNER_CLICKS_PER_TURN})",
         )
-        self.refresh()
+        self._refresh_clicks_and_credit_after_take("runner")
 
     def _on_rotate_corp(self, e) -> None:
         self._corp_rotated = not self._corp_rotated
@@ -579,7 +631,7 @@ class NetrunnerTracker:
 
         cred_dec, cred_inc = self._split_handler(
             "corp_credits", symbol=theme.SYM_CREDIT, label="credits",
-            debounce_ms=1200,
+            debounce_ms=1000,
         )
         bp_dec, bp_inc = self._split_handler(
             "corp_bad_pub", symbol=theme.SYM_BAD_PUB, label="bad pub",
@@ -637,7 +689,7 @@ class NetrunnerTracker:
 
         cred_dec, cred_inc = self._split_handler(
             "runner_credits", symbol=theme.SYM_CREDIT, label="credits",
-            debounce_ms=1200,
+            debounce_ms=1000,
         )
         tag_dec, tag_inc = self._split_handler(
             "runner_tags", symbol=theme.SYM_TAG, label="tag",
