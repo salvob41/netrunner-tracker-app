@@ -41,15 +41,15 @@ jobs:
 
           // Insert a release signingConfig block that reads from env vars
           c = c.replace('signingConfigs {', `signingConfigs {
-        release {
-            def sf = System.getenv('SIGNING_STORE_FILE')
-            if (sf) {
-                storeFile file(sf)
-                storePassword System.getenv('SIGNING_STORE_PASSWORD')
-                keyAlias System.getenv('SIGNING_KEY_ALIAS')
-                keyPassword System.getenv('SIGNING_KEY_PASSWORD') ?: System.getenv('SIGNING_STORE_PASSWORD')
-            }
-        }`);
+            release {
+                def sf = System.getenv('SIGNING_STORE_FILE')
+                if (sf) {
+                    storeFile file(sf)
+                    storePassword System.getenv('SIGNING_STORE_PASSWORD')
+                    keyAlias System.getenv('SIGNING_KEY_ALIAS')
+                    keyPassword System.getenv('SIGNING_KEY_PASSWORD') ?: System.getenv('SIGNING_STORE_PASSWORD')
+                }
+            }`);
 
           // Make the release buildType use release signingConfig when env vars present
           c = c.replace(
