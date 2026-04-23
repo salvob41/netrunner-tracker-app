@@ -20,27 +20,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.13"
+          node-version: "20"
+          cache: "npm"
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-
-      - name: Install Flet
-        run: pip install flet==0.82.2
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build web
-        run: flet build web --base-url /netrunner-tracker-app/
-
-      - name: Inject loading screen
-        run: sed -i 's|<body>|<body>\n'"$(cat web_loading.html | tr '\n' ' ')"'|' build/web/index.html
+        run: npx expo export --platform web
+        env:
+          # Expo web export outputs to dist/
+          EXPO_PUBLIC_BASE_PATH: /netrunner-tracker-app/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/web
+          path: dist
 
   deploy:
     needs: build-web

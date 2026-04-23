@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Netrunner Tracker",
+    "slug": "netrunner-tracker",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#07090d"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.salvob41.netrunnertracker"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#07090d"
+      },
+      "package": "com.salvob41.netrunnertracker"
+    },
+    "web": {
+      "favicon": "./src/assets/icon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-asset"
+    ]
+  }
+}
