@@ -331,6 +331,256 @@ def divider() -> ft.Divider:
     return ft.Divider(height=1, color=theme.PANEL_BORDER)
 
 
+# ── Section label ─────────────────────────────────────────────────────────────
+
+def section_label(text: str, color: str) -> ft.Text:
+    """Small all-caps section header label."""
+    return ft.Text(
+        text, size=9, color=ft.Colors.with_opacity(0.7, color),
+        style=ft.TextStyle(weight=ft.FontWeight.BOLD, letter_spacing=1.0),
+    )
+
+
+# ── Refill button ─────────────────────────────────────────────────────────────
+
+def refill_button(color: str, on_click) -> ft.Container:
+    """Small ⟳ button to restore all clicks for the active player."""
+    return ft.Container(
+        content=ft.Text(
+            "⟳", size=13, color=color,
+            text_align=ft.TextAlign.CENTER,
+        ),
+        on_click=on_click,
+        bgcolor=ft.Colors.with_opacity(0.12, color),
+        border=ft.Border.all(1, ft.Colors.with_opacity(0.4, color)),
+        border_radius=4,
+        padding=ft.Padding.symmetric(horizontal=8, vertical=3),
+    )
+
+
+# ── Stepper button ────────────────────────────────────────────────────────────
+
+def stepper(label: str, on_click, color: str) -> ft.Container:
+    """Compact +/- button used inside stepper_stat."""
+    return ft.Container(
+        content=ft.Text(
+            label, size=16, color=color,
+            text_align=ft.TextAlign.CENTER,
+        ),
+        on_click=on_click,
+        bgcolor=ft.Colors.with_opacity(0.12, color),
+        border=ft.Border.all(1, ft.Colors.with_opacity(0.35, color)),
+        border_radius=4,
+        padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+        width=32,
+    )
+
+
+# ── Tap stat (tap = +1, long-press = -1) ─────────────────────────────────────
+
+def tap_stat(
+    asset_path: str,
+    asset_color: str,
+    value_ref: ft.Text,
+    on_tap,
+    on_long_press,
+    icon_size: int = 18,
+) -> ft.GestureDetector:
+    """
+    Compact stat: NSG icon + value only. No text label.
+    Tap anywhere to +1, long-press to -1.
+    Long-press triggers a brief opacity flash as visual feedback.
+    """
+    container = ft.Container(
+        content=ft.Row(
+            [
+                nsg_icon(asset_path, icon_size, asset_color),
+                value_ref,
+            ],
+            spacing=6,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=ft.Padding.symmetric(horizontal=8, vertical=6),
+        border_radius=6,
+        ink=True,
+        animate_opacity=ft.Animation(150, ft.AnimationCurve.EASE_OUT),
+    )
+
+    def _on_lp(e):
+        container.opacity = 0.4
+        container.update()
+        on_long_press(e)
+        container.opacity = 1.0
+        container.update()
+
+    return ft.GestureDetector(
+        content=container,
+        on_tap=on_tap,
+        on_long_press_start=_on_lp,
+    )
+
+
+# ── Tap credit row (tap = +1, long-press = -1, with delta badge) ──────────────
+
+def tap_credit_row(
+    color: str,
+    value_ref: ft.Text,
+    delta_ref: ft.Text,
+    on_tap,
+    on_long_press,
+    icon_size: int = 22,
+) -> ft.GestureDetector:
+    """
+    Credits stat with tap/long-press and delta badge for debounce feedback.
+    No text label, no stepper buttons.
+    """
+    container = ft.Container(
+        content=ft.Row(
+            [
+                nsg_icon(theme.ASSET_CREDIT, icon_size, color),
+                ft.Row(
+                    [value_ref, delta_ref],
+                    spacing=6,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            ],
+            spacing=6,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=ft.Padding.symmetric(horizontal=8, vertical=8),
+        border_radius=6,
+        ink=True,
+        animate_opacity=ft.Animation(150, ft.AnimationCurve.EASE_OUT),
+    )
+
+    def _on_lp(e):
+        container.opacity = 0.4
+        container.update()
+        on_long_press(e)
+        container.opacity = 1.0
+        container.update()
+
+    return ft.GestureDetector(
+        content=container,
+        on_tap=on_tap,
+        on_long_press_start=_on_lp,
+    )
+
+
+# ── Stepper stat (icon + value + +/− buttons, no text label) ─────────────────
+
+def stepper_stat(
+    asset_path: str,
+    asset_color: str,
+    value_ref: ft.Text,
+    color: str,
+    on_decrement,
+    on_increment,
+    icon_size: int = 18,
+) -> ft.Container:
+    """
+    Stat with icon + value + stepper buttons. No text label.
+    Used for Hand Size, MU, Link.
+    """
+    return ft.Container(
+        content=ft.Row(
+            [
+                nsg_icon(asset_path, icon_size, asset_color),
+                value_ref,
+                ft.Container(expand=True),
+                ft.Row(
+                    [
+                        stepper("−", on_decrement, color),
+                        stepper("+", on_increment, color),
+                    ],
+                    spacing=4,
+                ),
+            ],
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=ft.Padding.symmetric(horizontal=8, vertical=5),
+    )
+
+
+# ── Unified vertical agenda bar (both halves + gold centre divider) ───────────
+
+def agenda_bar(
+    corp_score: int,
+    runner_score: int,
+    corp_score_ref: ft.Text,
+    runner_score_ref: ft.Text,
+    on_corp_tap,
+    on_corp_long_press,
+    on_runner_tap,
+    on_runner_long_press,
+) -> ft.Container:
+    """
+    Combined vertical tug-of-war sidebar spanning both player panels.
+    Corp half on top (fills downward), gold divider, Runner below (fills upward).
+    Tap = +1 agenda, long-press = -1 agenda on each half.
+    """
+    bar_width = theme.AGENDA_BAR_WIDTH
+
+    corp_segs = [
+        _agenda_segment(i < corp_score, theme.CORP_ACCENT, bar_width)
+        for i in range(7)
+    ]
+    runner_segs = [
+        _agenda_segment((6 - i) < runner_score, theme.RUNNER_ACCENT, bar_width)
+        for i in range(7)
+    ]
+
+    corp_half = ft.GestureDetector(
+        content=ft.Container(
+            bgcolor=theme.PANEL_BG,
+            padding=ft.Padding.symmetric(horizontal=4, vertical=4),
+            content=ft.Column(
+                [corp_score_ref, *corp_segs, ft.Container(expand=True)],
+                spacing=2,
+                expand=True,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        ),
+        on_tap=on_corp_tap,
+        on_long_press_start=on_corp_long_press,
+        expand=True,
+    )
+
+    divider_line = ft.Container(
+        width=bar_width,
+        height=3,
+        bgcolor=theme.AGENDA_GOLD,
+    )
+
+    runner_half = ft.GestureDetector(
+        content=ft.Container(
+            bgcolor=theme.PANEL_BG,
+            padding=ft.Padding.symmetric(horizontal=4, vertical=4),
+            content=ft.Column(
+                [ft.Container(expand=True), *runner_segs, runner_score_ref],
+                spacing=2,
+                expand=True,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        ),
+        on_tap=on_runner_tap,
+        on_long_press_start=on_runner_long_press,
+        expand=True,
+    )
+
+    return ft.Container(
+        width=bar_width,
+        border=ft.Border.all(1, ft.Colors.with_opacity(0.45, theme.AGENDA_GOLD)),
+        border_radius=8,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        content=ft.Column(
+            [corp_half, divider_line, runner_half],
+            spacing=0,
+            expand=True,
+        ),
+    )
+
+
 # ── Panel shell ───────────────────────────────────────────────────────────────
 
 def panel(

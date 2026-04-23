@@ -11,66 +11,91 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    env:
-      PYTHONUTF8: 1
-      FLET_CLI_NO_RICH_OUTPUT: 1
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.13"
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
+          node-version: "20"
+          cache: "npm"
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Flet
-        run: pip install flet==0.82.2
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --no-install
+
+      # Patch the generated build.gradle to support optional release signing
+      # via environment variables (set below when keystore secrets are present).
+      - name: Patch build.gradle for optional release signing
+        run: |
+          node - <<'SCRIPT'
+          const fs = require('fs');
+          const p = 'android/app/build.gradle';
+          let c = fs.readFileSync(p, 'utf8');
+
+          // Insert a release signingConfig block that reads from env vars
+          c = c.replace('signingConfigs {', `signingConfigs {
+        release {
+            def sf = System.getenv('SIGNING_STORE_FILE')
+            if (sf) {
+                storeFile file(sf)
+                storePassword System.getenv('SIGNING_STORE_PASSWORD')
+                keyAlias System.getenv('SIGNING_KEY_ALIAS')
+                keyPassword System.getenv('SIGNING_KEY_PASSWORD') ?: System.getenv('SIGNING_STORE_PASSWORD')
+            }
+        }`);
+
+          // Make the release buildType use release signingConfig when env vars present
+          c = c.replace(
+            /signingConfig signingConfigs\.debug(\s*\/\/[^\n]*)?/,
+            "signingConfig System.getenv('SIGNING_STORE_FILE') ? signingConfigs.release : signingConfigs.debug"
+          );
+
+          fs.writeFileSync(p, c);
+          console.log('build.gradle patched for optional release signing');
+          SCRIPT
 
       # If ANDROID_KEYSTORE_B64 and passwords are not set, each run uses a different
-      # ad‑hoc key → in‑place upgrades from prior APKs fail; uninstall the old app first
-      # or add repo secrets and keep the same .jks for all releases. See README.
-      - name: Optional upload keystore (for consistent signatures)
+      # ad-hoc key — in-place upgrades from prior APKs will fail; uninstall first.
+      # Add repo secrets to get consistent signing across releases. See README.
+      - name: Configure keystore (optional)
         run: |
           if [ -n "$B64" ]; then
-            echo "$B64" | base64 -d > "$RUNNER_TEMP/netrunner-upload.jks"
-            {
-              echo "FLET_ANDROID_SIGNING_KEY_STORE=$RUNNER_TEMP/netrunner-upload.jks"
-              echo "FLET_ANDROID_SIGNING_KEY_STORE_PASSWORD=$STORE_PASS"
-            } >> "$GITHUB_ENV"
-            if [ -n "$KEY_PASS" ]; then
-              echo "FLET_ANDROID_SIGNING_KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
-            fi
-            echo "FLET_ANDROID_SIGNING_KEY_ALIAS=${ALIAS:-upload}" >> "$GITHUB_ENV"
+            KS="$RUNNER_TEMP/netrunner-upload.jks"
+            echo "$B64" | base64 -d > "$KS"
+            echo "SIGNING_STORE_FILE=$KS"           >> "$GITHUB_ENV"
+            echo "SIGNING_STORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
+            echo "SIGNING_KEY_ALIAS=${ALIAS:-upload}"  >> "$GITHUB_ENV"
+            echo "SIGNING_KEY_PASSWORD=${KEY_PASS}"    >> "$GITHUB_ENV"
             echo "Release keystore will be used for signing."
           else
-            echo "No ANDROID_KEYSTORE_B64 secret — new debug-style signature each build (uninstall old APK to upgrade)."
+            echo "No ANDROID_KEYSTORE_B64 secret — debug-style signature each build (uninstall old APK to upgrade)."
           fi
         env:
-          B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          B64:        ${{ secrets.ANDROID_KEYSTORE_B64 }}
           STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS:   ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ALIAS:      ${{ secrets.ANDROID_KEY_ALIAS }}
 
-      - name: Build APK
-        run: flet build apk
+      - name: Build release APK
+        run: cd android && ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: netrunner-tracker-apk
-          path: build/apk/*.apk
+          path: android/app/build/outputs/apk/release/*.apk
           retention-days: 30
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/apk/*.apk
+          files: android/app/build/outputs/apk/release/*.apk
           generate_release_notes: true
