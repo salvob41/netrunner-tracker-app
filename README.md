@@ -1,18 +1,14 @@
 # Netrunner Game Tracker
 
-A single-screen game state tracker for [Android: Netrunner](https://nullsignal.games/), designed for fast, tap-first interaction during live play. Built with [Flet](https://flet.dev/) (Flutter for Python) — runs everywhere from a phone in your hand to a browser tab on your laptop.
+A single-screen game state tracker for [Android: Netrunner](https://nullsignal.games/), designed for fast, tap-first interaction during live play. Built with **React Native + Expo** (SDK 52, TypeScript) — runs on Android, web, and iOS.
 
 **[Try it in your browser](https://salvob41.github.io/netrunner-tracker-app/)**
 
-## Screenshots (mobile)
+## Screenshots
 
-Phone-width viewport. Start and agenda pips, then a **cropped** full-width strip so log lines are readable, and Runner turn (banner, YOUR TURN, **END RUNNER TURN**).
-
-| Start of match (Corp) | Agenda scoring (sidebar) |
+| Setup — pick your factions | Game screen — Corp turn |
 | --- | --- |
-| ![Start of match, Corp turn round 1](docs/screenshot-mobile-initial.png) | ![Agenda pips on the sidebar](docs/screenshot-mobile-agenda.png) |
-| **Game log** (open, showing lines) | **Runner turn** (active panel) |
-| ![Game log with event lines and NSG-style icons](docs/screenshot-mobile-logs.png) | ![Runner turn banner and actions](docs/screenshot-mobile-runner-turn.png) |
+| ![Faction picker](docs/expo-setup-screen.png) | ![Game screen with credit counters](docs/expo-game-credits-panel-fill.png) |
 
 ## Why this exists
 
@@ -20,79 +16,92 @@ Netrunner has a lot of game state to track: clicks, credits, agenda points, tags
 
 ## Features
 
-- **One-screen layout** — Both Corp and Runner panels always visible, no scrolling during play
-- **Split-tap stats** — Left half of a stat = −1, right half = +1 (separate `on_tap_down` zones; no position math, which is unreliable in Flet when `width` is missing in events)
-- **Debounced logging** — Rapid credit tweaks batch into one log line after you pause (~1s for credits, 0.8s for other stats) with a live +N/−N delta badge while you are adjusting
-- **Click tokens** — Tap filled tokens to spend, tap spent tokens to restore; **allotted** extra clicks from effects appear as ghosted, softer filled chips after your normal 3/4
-- **Agenda tug-of-war** — Vertical sidebar bar where Corp fills upward and Runner fills downward from a center divider
-- **Faction theming** — Corp in electric blue, Runner in molten orange, agenda in gold. Active player's panel glows
-- **Game log** — Collapsible event history with NSG icons, newest events first
-- **Official iconography** — [Null Signal Games](https://nullsignal.games/) PNG assets, tinted per-faction at runtime
-- **Cross-platform** — Android (APK), web (GitHub Pages), macOS, Windows, Linux
+- **Faction setup screen** — pick Corp (HB, Jinteki, NBN, Weyland) and Runner (Anarch, Criminal, Shaper); each faction has its own color theme
+- **One-screen layout** — Corp and Runner panels always visible, no scrolling during play; active panel glows, inactive dims
+- **Giant split-tap credit counter** — fills the panel; left half = −1, right half = +1; number pops on change
+- **Click tokens** — tap to spend, tap spent token to restore; extra allotted clicks appear as ghost tokens
+- **StatChip** — collapsed icon-only view, tap to expand into −/value/+ controls; covers tags, core damage, hand size, MU, link, bad pub
+- **Agenda tug-of-war** — vertical sidebar bar, Corp fills upward and Runner fills downward; 7 AP wins
+- **End Turn / action buttons** — Draw a card or take +¢ with one tap while spending a click
+- **Game log** — slide-up sheet with full event history, newest first
+- **Win overlay** — faction glyph, name, and NEW GAME button
+- **Official iconography** — [Null Signal Games](https://nullsignal.games/) PNG assets, tinted per-faction at runtime via `tintColor`
 
 ## Running locally
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate   # optional
-pip install flet
-
-# Desktop app
-flet run src/main.py
+npm install
 
 # Web (browser)
-cd src && python -c "
-import flet as ft
-from tracker import NetrunnerTracker
-def main(page): NetrunnerTracker(page)
-ft.run(main, assets_dir='assets', view=ft.AppView.WEB_BROWSER, port=8550)
-"
+npm run web
+
+# Start Metro (then scan QR for Expo Go on Android/iOS)
+npm start
 ```
 
 ## Building
 
 ```bash
-flet build apk     # Android APK → build/apk/
-flet build web     # Static web → build/web/
-flet build macos   # macOS app
+# Android APK (requires Android SDK + JDK 17)
+npx expo prebuild --platform android
+cd android && ./gradlew assembleRelease
+
+# Web static site
+npx expo export --platform web   # → dist/
 ```
 
-### Android: “package conflicts with an existing package”
+### Android: "package conflicts with an existing package"
 
-Android only lets you **update** an app in place if the new APK is signed with the **same key** as the one already on the device. The GitHub Action release APKs are, by default, signed with a **one-off** key per CI run, and a local `flet build apk` is signed differently again — the **app id** is the same, but the **signatures** do not match, and the installer refuses with that error (or *App not installed*).
+Android only lets you update an app in place if the new APK is signed with the **same key** as the one already installed. By default, each CI run uses a fresh debug key — to get consistent signing across releases, add these GitHub Actions secrets:
 
-**Fix right now:** uninstall **Netrunner Tracker** (or the previous install) from the phone, then install the new APK. You are not in a “Play Store” upgrade path; it is a fresh install of the new build.
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_B64` | Base64 of your `.jks` upload keystore |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Key alias (usually `upload`) |
+| `ANDROID_KEY_PASSWORD` | Key password (omit if same as store password) |
 
-**For future releases that update in place** without uninstalling, use one **upload keystore** for every build and [configure it for Flet](https://flet.dev/docs/publish/android/) (see [environment variables](https://flet.dev/docs/reference/environment-variables) such as `FLET_ANDROID_SIGNING_KEY_STORE`, etc.). In this repository you can add GitHub **Actions secrets** so CI signs release APKs consistently: `ANDROID_KEYSTORE_B64` (base64 of your `.jks` file), `ANDROID_KEYSTORE_PASSWORD`, optionally `ANDROID_KEY_PASSWORD`, and `ANDROID_KEY_ALIAS` (often `upload`). The workflow in `.github/workflows/build-apk.yml` reads those when set.
+The workflow in `.github/workflows/build-apk.yml` picks these up automatically.
 
 ## Architecture
 
 ```
 src/
-├── main.py          # Entry point (5 lines)
-├── state.py         # Pure game state — zero UI imports, fully testable
-├── tracker.py       # Controller — wires state to widgets, handles events
-├── components.py    # Stateless UI primitives (split_tap_stat, agenda_bar, etc.)
-├── theme.py         # All colors, icons, symbols in one place
-├── game_log.py      # Append-only event log (80 entries max)
-└── assets/          # NSG PNG icons (tinted at runtime via SRC_IN blend)
+├── App.tsx                  # Entry point: font loading, setup→game state machine
+├── theme.ts                 # Colors, faction definitions, atmosphere presets
+├── state.ts                 # Pure game state types and initial state factory
+├── screens/
+│   ├── SetupScreen.tsx      # Faction picker UI
+│   └── GameScreen.tsx       # Full game tracker UI and state handlers
+└── components/
+    ├── CreditCounter.tsx    # Giant split-tap credit panel
+    ├── ClickToken.tsx       # Animated spend/restore click token
+    ├── StatChip.tsx         # Collapsible icon→expanded stat adjuster
+    ├── AgendaBar.tsx        # Vertical 7-segment agenda tug-of-war
+    ├── FactionGlyph.tsx     # Circular faction badge
+    ├── Icon.tsx             # NSG PNG icon with runtime tintColor
+    ├── LogSheet.tsx         # Slide-up event history sheet
+    └── WinOverlay.tsx       # Full-screen win announcement
 ```
 
-State is fully decoupled from UI — `state.py` has no Flet imports and encodes all game rules (click counts, win threshold, turn structure). The controller never makes rule decisions; it just maps state to widgets.
+State is fully decoupled from UI — `state.ts` has no React imports and encodes all game rules (click counts, win threshold, turn structure). The screen components never make rule decisions; they only map state to widgets and call handlers.
 
 ## CI/CD
 
-**Versioning (SemVer):** bump the **patch** `z` in `1.x.z` for bugfixes and small UI tweaks; bump **minor** `y` for user-visible new behavior. This repo’s `pyproject.toml` `version` should follow that, then **tag** `v1.x.z` to ship.
+**Versioning (SemVer):** bump `patch` for bugfixes, `minor` for new user-visible behavior, `major` for rewrites. Tag `vX.Y.Z` to ship.
 
-GitHub Actions on push to `main`:
+GitHub Actions triggers:
 
-- **Build APK** — builds Android APK, uploads as artifact
-- **Deploy Web** — builds static site and deploys to GitHub Pages
+| Trigger | Workflow | Output |
+| --- | --- | --- |
+| Push tag `v*` | `build-apk.yml` | Android APK artifact + GitHub Release |
+| Push to `main` | `deploy-web.yml` | Static site → GitHub Pages |
 
 ## Credits
 
 - Game design: [Null Signal Games](https://nullsignal.games/) (formerly NISEI / Fantasy Flight Games)
 - Icons: [NSG Visual Assets](https://nullsignal.games/about/resources/)
-- Built with: [Flet](https://flet.dev/)
+- Built with: [Expo](https://expo.dev/) + [React Native](https://reactnative.dev/)
 
 ## License
 
