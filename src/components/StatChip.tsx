@@ -2,6 +2,10 @@ import React, { useState, useRef } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 import { Icon } from './Icon';
 import { rgba } from '../theme';
+import { useBatchedDelta } from '../hooks/useBatchedDelta';
+
+const PILL_GREEN = '#00f0a0';
+const PILL_RED   = '#ff2040';
 
 interface Props {
   iconSource: ReturnType<typeof require>;
@@ -14,16 +18,21 @@ interface Props {
 export function StatChip({ iconSource, value, color, onChange, label }: Props) {
   const [expanded, setExpanded] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const { pending, bump } = useBatchedDelta(onChange);
+
+  const displayValue = value + pending;
+  const pillColor = pending >= 0 ? PILL_GREEN : PILL_RED;
+  const pillLabel = pending > 0 ? `+${pending}` : `\u2212${Math.abs(pending)}`;
 
   const tap = (delta: number) => {
-    onChange(delta);
+    bump(delta);
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 1.2, duration: 70, useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 1, duration: 130, useNativeDriver: true }),
     ]).start();
   };
 
-  // Collapsed: shows only icon; tap to expand into ±/value controls
+  // Collapsed: shows only icon (+ pending pill if mid-burst); tap to expand into ±/value controls
   if (!expanded) {
     return (
       <Pressable
@@ -36,6 +45,21 @@ export function StatChip({ iconSource, value, color, onChange, label }: Props) {
         }}
       >
         <Icon source={iconSource} size={22} color={rgba(color, 0.75)} />
+        {pending !== 0 && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 2, right: 2,
+              backgroundColor: rgba(pillColor, 0.18),
+              borderWidth: 1, borderColor: rgba(pillColor, 0.50),
+              borderRadius: 8, paddingVertical: 1, paddingHorizontal: 5,
+            }}
+          >
+            <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 9, color: pillColor }}>
+              {pillLabel}
+            </Text>
+          </View>
+        )}
       </Pressable>
     );
   }
@@ -66,8 +90,23 @@ export function StatChip({ iconSource, value, color, onChange, label }: Props) {
           lineHeight: 24,
           transform: [{ scale: scaleAnim }],
         }}>
-          {value}
+          {displayValue}
         </Animated.Text>
+        {pending !== 0 && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 2, right: 2,
+              backgroundColor: rgba(pillColor, 0.18),
+              borderWidth: 1, borderColor: rgba(pillColor, 0.50),
+              borderRadius: 8, paddingVertical: 1, paddingHorizontal: 5,
+            }}
+          >
+            <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 9, color: pillColor }}>
+              {pillLabel}
+            </Text>
+          </View>
+        )}
       </Pressable>
       <Pressable
         onPressIn={() => tap(+1)}
