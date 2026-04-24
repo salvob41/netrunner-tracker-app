@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
@@ -11,6 +11,8 @@ import { ShareTechMono_400Regular } from '@expo-google-fonts/share-tech-mono';
 import { StatusBar } from 'expo-status-bar';
 import { SetupScreen } from './screens/SetupScreen';
 import { GameScreen } from './screens/GameScreen';
+import { GameScreenLandscape } from './screens/GameScreenLandscape';
+import { useGameState } from './hooks/useGameState';
 import { Faction, ATMOSPHERES } from './theme';
 
 export default function App() {
@@ -20,6 +22,9 @@ export default function App() {
     Rajdhani_700Bold,
     ShareTechMono_400Regular,
   });
+
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   const [screen, setScreen] = useState<'setup' | 'game'>('setup');
   const [corpFaction, setCorpFaction] = useState<Faction | null>(null);
@@ -32,6 +37,20 @@ export default function App() {
     tokenRadius: 12,
     inactiveOpacity: 0.72,
   };
+
+  const handleReset = () => {
+    setScreen('setup');
+    setCorpFaction(null);
+    setRunnerFaction(null);
+  };
+
+  // Hook must be called unconditionally; uses fallback factions when on setup screen
+  const game = useGameState({
+    corpFaction: corpFaction ?? { id: '', name: 'CORP', short: 'C', color: theme.corp },
+    runnerFaction: runnerFaction ?? { id: '', name: 'RUNNER', short: 'R', color: theme.runner },
+    onReset: handleReset,
+    theme,
+  });
 
   if (!fontsLoaded) {
     return (
@@ -47,25 +66,16 @@ export default function App() {
     setScreen('game');
   };
 
-  const handleReset = () => {
-    setScreen('setup');
-    setCorpFaction(null);
-    setRunnerFaction(null);
-  };
-
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
       <View style={{ flex: 1, backgroundColor: theme.bg }}>
         {screen === 'setup' ? (
           <SetupScreen onStart={handleStart} bg={theme.bg} />
+        ) : isLandscape ? (
+          <GameScreenLandscape game={game} />
         ) : (
-          <GameScreen
-            corpFaction={corpFaction!}
-            runnerFaction={runnerFaction!}
-            onReset={handleReset}
-            theme={theme}
-          />
+          <GameScreen game={game} />
         )}
       </View>
     </SafeAreaProvider>

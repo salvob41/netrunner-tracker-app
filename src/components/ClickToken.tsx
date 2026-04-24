@@ -22,8 +22,8 @@ export function ClickToken({ filled, color, onTap, size = 48, ghost = false, rad
     if (!onTap) return;
     // Spring-bounce on tap for tactile feedback
     Animated.sequence([
-      Animated.timing(scale, { toValue: 0.82, duration: 80, useNativeDriver: true }),
-      Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 0.82, duration: 80, useNativeDriver: false }),
+      Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: false }),
     ]).start();
     onTap();
   };

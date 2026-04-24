@@ -30,8 +30,8 @@ export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, 
   const tap = (delta: number) => {
     bump(delta);
     Animated.sequence([
-      Animated.timing(popAnim, { toValue: 1.3, duration: 70, useNativeDriver: true }),
-      Animated.timing(popAnim, { toValue: 1, duration: 130, useNativeDriver: true }),
+      Animated.timing(popAnim, { toValue: 1.3, duration: 70, useNativeDriver: false }),
+      Animated.timing(popAnim, { toValue: 1, duration: 130, useNativeDriver: false }),
     ]).start();
   };
 
@@ -55,8 +55,7 @@ export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, 
       />
       {/* Visual overlay (non-interactive) */}
       <View
-        pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}
       >
         <Icon source={iconSource} size={22} color={rgba(color, active ? 1 : 0.6)} />
         {active && (

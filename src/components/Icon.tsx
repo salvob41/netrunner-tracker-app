@@ -11,7 +11,8 @@ export function Icon({ source, size = 18, color = '#ffffff' }: IconProps) {
   return (
     <Image
       source={source}
-      style={{ width: size, height: size, tintColor: color }}
+      tintColor={color}
+      style={{ width: size, height: size }}
       resizeMode="contain"
     />
   );

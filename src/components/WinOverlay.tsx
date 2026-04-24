@@ -24,8 +24,8 @@ export function WinOverlay({ winner, corpFaction, runnerFaction, onReset }: Prop
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.timing(scale, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: false }),
+      Animated.timing(scale, { toValue: 1, duration: 300, useNativeDriver: false }),
     ]).start();
   }, []);
 

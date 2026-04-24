@@ -41,15 +41,15 @@ export function LogSheet({ log, onClose }: Props) {
   // Slide up on mount
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: 0, duration: 250, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: false }),
+      Animated.timing(translateY, { toValue: 0, duration: 250, useNativeDriver: false }),
     ]).start();
   }, []);
 
   const close = () => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 0, duration: 180, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: 400, duration: 200, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 0, duration: 180, useNativeDriver: false }),
+      Animated.timing(translateY, { toValue: 400, duration: 200, useNativeDriver: false }),
     ]).start(onClose);
   };
 
