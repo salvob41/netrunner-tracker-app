@@ -84,7 +84,7 @@ export function StatChip({ iconSource, value, color, onChange, label, chipHeight
       </Pressable>
       {/* Tap center to collapse back to icon view — icon + number shown inline */}
       <Pressable
-        onPressIn={() => setExpanded(false)}
+        onLongPress={() => setExpanded(false)}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 }}
       >
         <Icon source={iconSource} size={14} color={rgba(color, 0.7)} />
@@ -98,19 +98,9 @@ export function StatChip({ iconSource, value, color, onChange, label, chipHeight
           {displayValue}
         </Animated.Text>
         {pending !== 0 && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute', top: 2, right: 2,
-              backgroundColor: rgba(pillColor, 0.18),
-              borderWidth: 1, borderColor: rgba(pillColor, 0.50),
-              borderRadius: 8, paddingVertical: 1, paddingHorizontal: 5,
-            }}
-          >
-            <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 9, color: pillColor }}>
-              {pillLabel}
-            </Text>
-          </View>
+          <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 9, color: pillColor, marginLeft: 2 }}>
+            {pillLabel}
+          </Text>
         )}
       </Pressable>
       <Pressable
