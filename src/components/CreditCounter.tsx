@@ -71,16 +71,18 @@ export function CreditCounter({ value, color, onChange, label, flushRef }: Props
         }}
         pointerEvents="none"
       >
-        <Icon source={CREDIT_ICON} size={22} color={rgba(color, 0.6)} />
-        <Animated.Text style={{
-          fontFamily: 'ShareTechMono_400Regular',
-          fontSize: 64,
-          color,
-          lineHeight: 68,
-          transform: [{ scale: scaleAnim }],
-        }}>
-          {displayValue}
-        </Animated.Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Icon source={CREDIT_ICON} size={26} color={rgba(color, 0.5)} />
+          <Animated.Text style={{
+            fontFamily: 'ShareTechMono_400Regular',
+            fontSize: 64,
+            color,
+            lineHeight: 68,
+            transform: [{ scale: scaleAnim }],
+          }}>
+            {displayValue}
+          </Animated.Text>
+        </View>
         {label && (
           <Text style={{ fontSize: 10, letterSpacing: 1.5, color: rgba(color, 0.5), fontFamily: 'Rajdhani_600SemiBold' }}>
             {label}

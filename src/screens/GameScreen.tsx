@@ -89,6 +89,8 @@ function ExtraClickBtn({
 export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props) {
   const [gs, setGs] = useState<GameState>(makeInitialState);
   const [showLog, setShowLog] = useState(false);
+  const [corpFlipped, setCorpFlipped] = useState(false);
+  const [runnerFlipped, setRunnerFlipped] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Flush refs for credit counters — called before any turn transition.
@@ -122,6 +124,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
         return {
           ...s,
           active: 'runner',
+          corp: { ...s.corp, extra: 0 },
           runner: { ...s.runner, clicks: 4 + s.runner.extra },
           log: [...s.log, { round: s.round, player: 'game', message: 'Corp turn ended · Runner begins' }],
         };
@@ -131,6 +134,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
           ...s,
           round: nextRound,
           active: 'corp',
+          runner: { ...s.runner, extra: 0 },
           corp: { ...s.corp, clicks: 3 + s.corp.extra },
           log: [...s.log, {
             round: s.round, player: 'game',
@@ -211,20 +215,22 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             ROUND {gs.round}
           </Text>
         </View>
-        <Pressable
-          onPressIn={onReset}
-          style={{
-            padding: 6, paddingHorizontal: 10, borderRadius: 6,
-            borderWidth: 1, borderColor: rgba(C.red, 0.2),
-          }}
-        >
-          <Text style={{
-            fontSize: 10, letterSpacing: 1,
-            color: rgba(C.red, 0.55), fontFamily: 'Rajdhani_700Bold',
-          }}>
-            ⟳ RESET
-          </Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+          <Pressable
+            onPressIn={onReset}
+            style={{
+              padding: 6, paddingHorizontal: 10, borderRadius: 6,
+              borderWidth: 1, borderColor: rgba(C.red, 0.2),
+            }}
+          >
+            <Text style={{
+              fontSize: 10, letterSpacing: 1,
+              color: rgba(C.red, 0.55), fontFamily: 'Rajdhani_700Bold',
+            }}>
+              ⟳ RESET
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Corp panel + agenda sidebar */}
@@ -235,6 +241,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
           borderWidth: gs.active === 'corp' ? 2 : 1,
           borderColor: rgba(corpColor, gs.active === 'corp' ? 0.6 : 0.2),
           opacity: gs.active === 'runner' ? theme.inactiveOpacity : 1,
+          transform: corpFlipped ? [{ rotate: '180deg' }] : [],
         }}>
           {/* Panel header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -245,20 +252,18 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             }}>
               {corpFaction?.name || 'CORP'}
             </Text>
-            {gs.active === 'corp' && (
-              <View style={{
-                paddingVertical: 1, paddingHorizontal: 7, borderRadius: 4,
-                backgroundColor: rgba(corpColor, 0.15),
-                borderWidth: 1, borderColor: rgba(corpColor, 0.4),
-              }}>
-                <Text style={{
-                  fontSize: 9, letterSpacing: 1.5, color: corpColor, fontFamily: 'Rajdhani_700Bold',
-                }}>
-                  YOUR TURN
-                </Text>
-              </View>
-            )}
             <View style={{ flex: 1 }} />
+            <Pressable
+              onPressIn={() => setCorpFlipped(v => !v)}
+              style={{
+                padding: 4, paddingHorizontal: 7, borderRadius: 6,
+                borderWidth: 1,
+                borderColor: rgba(corpColor, corpFlipped ? 0.5 : 0.2),
+                backgroundColor: corpFlipped ? rgba(corpColor, 0.12) : 'transparent',
+              }}
+            >
+              <Text style={{ fontSize: 11, color: rgba(corpColor, corpFlipped ? 0.9 : 0.4) }}>⇅</Text>
+            </Pressable>
             {gs.active === 'corp' && (
               <View style={{ flexDirection: 'row', gap: 6 }}>
                 <ActionBtn
@@ -297,7 +302,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                   ? () => handleCorpTokenTap(i, i < gs.corp.clicks)
                   : undefined}
                 ghost={i >= 3}
-                size={46}
+                size={i >= 3 ? 38 : 46}
                 radius={theme.tokenRadius}
               />
             ))}
@@ -340,9 +345,12 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             <ExtraClickBtn
               color={corpColor}
               extra={gs.corp.extra}
-              onPress={() => update(s => ({
-                ...s, corp: { ...s.corp, extra: (s.corp.extra + 1) % 4 },
-              }))}
+              onPress={() => update(s => {
+                const prev = s.corp.extra;
+                const next = (prev + 1) % 4;
+                const dc = next > prev ? 1 : -prev;
+                return { ...s, corp: { ...s.corp, extra: next, clicks: Math.max(0, s.corp.clicks + dc) } };
+              })}
             />
           </View>
         </View>
@@ -385,14 +393,14 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             END {gs.active === 'corp' ? 'CORP' : 'RUNNER'} TURN
           </Text>
         </Pressable>
-        {/* Win condition reminder */}
-        <View style={{ width: 52, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-          <Icon source={AGENDA_ICON} size={24} color={C.gold} />
+        {/* Win condition reminder — width matches agenda bar (28px) */}
+        <View style={{ width: 28, alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <Icon source={AGENDA_ICON} size={16} color={C.gold} />
           <Text style={{
-            fontSize: 7, letterSpacing: 1.5,
+            fontSize: 6, letterSpacing: 0.5,
             color: rgba(C.gold, 0.55), fontFamily: 'Rajdhani_700Bold',
           }}>
-            7·WIN
+            7WIN
           </Text>
         </View>
       </View>
@@ -405,6 +413,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
           borderWidth: gs.active === 'runner' ? 2 : 1,
           borderColor: rgba(runnerColor, gs.active === 'runner' ? 0.6 : 0.2),
           opacity: gs.active === 'corp' ? theme.inactiveOpacity : 1,
+          transform: runnerFlipped ? [{ rotate: '180deg' }] : [],
         }}>
           {/* Panel header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -415,21 +424,18 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             }}>
               {runnerFaction?.name || 'RUNNER'}
             </Text>
-            {gs.active === 'runner' && (
-              <View style={{
-                paddingVertical: 1, paddingHorizontal: 7, borderRadius: 4,
-                backgroundColor: rgba(runnerColor, 0.15),
-                borderWidth: 1, borderColor: rgba(runnerColor, 0.4),
-              }}>
-                <Text style={{
-                  fontSize: 9, letterSpacing: 1.5,
-                  color: runnerColor, fontFamily: 'Rajdhani_700Bold',
-                }}>
-                  YOUR TURN
-                </Text>
-              </View>
-            )}
             <View style={{ flex: 1 }} />
+            <Pressable
+              onPressIn={() => setRunnerFlipped(v => !v)}
+              style={{
+                padding: 4, paddingHorizontal: 7, borderRadius: 6,
+                borderWidth: 1,
+                borderColor: rgba(runnerColor, runnerFlipped ? 0.5 : 0.2),
+                backgroundColor: runnerFlipped ? rgba(runnerColor, 0.12) : 'transparent',
+              }}
+            >
+              <Text style={{ fontSize: 11, color: rgba(runnerColor, runnerFlipped ? 0.9 : 0.4) }}>⇅</Text>
+            </Pressable>
             {gs.active === 'runner' && (
               <View style={{ flexDirection: 'row', gap: 6 }}>
                 <ActionBtn
@@ -468,14 +474,14 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                   ? () => handleRunnerTokenTap(i, i < gs.runner.clicks)
                   : undefined}
                 ghost={i >= 4}
-                size={42}
+                size={i >= 4 ? 35 : 42}
                 radius={theme.tokenRadius}
               />
             ))}
           </View>
 
-          {/* Credits — flex: 1 fills remaining panel height */}
-          <View style={{ flex: 1, marginBottom: 8 }}>
+          {/* Credits + 2-col stat grid — flex: 1 fills remaining panel height */}
+          <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
             <CreditCounter
               value={gs.runner.credits}
               color={runnerColor}
@@ -492,56 +498,67 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                 });
               }}
             />
+            {/* Single-column stat chips — same compact style as corp BadPub */}
+            <View style={{ gap: 4 }}>
+              <View style={{ flex: 1 }}>
+                <StatChip
+                  iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} flexHeight
+                  onChange={d => {
+                    update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
+                    addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <StatChip
+                  iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple} flexHeight
+                  onChange={d => {
+                    update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
+                    addLog('runner', d > 0 ? 'Core damage +1' : 'Core damage −1');
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <StatChip
+                  iconSource={HAND_ICON} value={handSize} color={runnerColor} flexHeight
+                  onChange={d => {
+                    update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
+                    addLog('runner', d > 0 ? 'Hand size +1' : 'Hand size −1');
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <StatChip
+                  iconSource={MU_ICON} value={gs.runner.mu} color={C.mu} flexHeight
+                  onChange={d => {
+                    update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
+                    addLog('runner', d > 0 ? 'MU +1' : 'MU −1');
+                  }}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <StatChip
+                  iconSource={LINK_ICON} value={gs.runner.link} color={C.link} flexHeight
+                  onChange={d => {
+                    update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
+                    addLog('runner', d > 0 ? 'Link +1' : 'Link −1');
+                  }}
+                />
+              </View>
+            </View>
           </View>
 
-          {/* Stat chips row 1: Tags, Brain damage, Hand size */}
-          <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
-            <StatChip
-              iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold}
-              onChange={d => {
-                update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
-                addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
-              }}
-            />
-            <StatChip
-              iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple}
-              onChange={d => {
-                update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
-                addLog('runner', d > 0 ? 'Core damage +1' : 'Core damage −1');
-              }}
-            />
-            <StatChip
-              iconSource={HAND_ICON} value={handSize} color={runnerColor}
-              onChange={d => {
-                update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
-                addLog('runner', d > 0 ? 'Hand size +1' : 'Hand size −1');
-              }}
-            />
-          </View>
-
-          {/* Stat chips row 2: MU, Link, extra click button */}
-          <View style={{ flexDirection: 'row', gap: 6 }}>
-            <StatChip
-              iconSource={MU_ICON} value={gs.runner.mu} color={C.mu}
-              onChange={d => {
-                update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
-                addLog('runner', d > 0 ? 'MU +1' : 'MU −1');
-              }}
-            />
-            <StatChip
-              iconSource={LINK_ICON} value={gs.runner.link} color={C.link}
-              onChange={d => {
-                update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
-                addLog('runner', d > 0 ? 'Link +1' : 'Link −1');
-              }}
-            />
-            <View style={{ flex: 1 }} />
+          {/* Extra click button — same layout as corp */}
+          <View style={{ alignItems: 'flex-end', marginTop: 6 }}>
             <ExtraClickBtn
               color={runnerColor}
               extra={gs.runner.extra}
-              onPress={() => update(s => ({
-                ...s, runner: { ...s.runner, extra: (s.runner.extra + 1) % 5 },
-              }))}
+              onPress={() => update(s => {
+                const prev = s.runner.extra;
+                const next = (prev + 1) % 5;
+                const dc = next > prev ? 1 : -prev;
+                return { ...s, runner: { ...s.runner, extra: next, clicks: Math.max(0, s.runner.clicks + dc) } };
+              })}
             />
           </View>
         </View>
