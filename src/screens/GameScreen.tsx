@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClickToken } from '../components/ClickToken';
 import { CreditCounter } from '../components/CreditCounter';
@@ -93,15 +93,13 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
   const [runnerFlipped, setRunnerFlipped] = useState(false);
   const [runnerExpandCount, setRunnerExpandCount] = useState(0);
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
 
   const onRunnerChipExpand = (exp: boolean) =>
     setRunnerExpandCount(c => exp ? c + 1 : Math.max(0, c - 1));
 
-  const statColWidth = runnerExpandCount > 0
-    ? (isLandscape ? 160 : 125)
-    : 46;
+  // Collapsed → 1/6 of row (flex 5:1), expanded → 1/3 (flex 2:1)
+  const creditFlex = runnerExpandCount > 0 ? 2 : 5;
+  const statFlex = 1;
 
   // Flush refs for credit counters — called before any turn transition.
   const corpCreditFlush = React.useRef<() => void>(() => {});
@@ -318,25 +316,27 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             ))}
           </View>
 
-          {/* Credits + Bad Pub — flex: 1 fills remaining panel height */}
+          {/* Credits + Bad Pub — 5:1 flex so BadPub takes 1/6 of row */}
           <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
-            <CreditCounter
-              value={gs.corp.credits}
-              color={corpColor}
-              flushRef={corpCreditFlush}
-              onChange={d => {
-                update(s => {
-                  const next = clamp(s.corp.credits + d, 0, 99);
-                  const sign = d > 0 ? '+' : '';
-                  return {
-                    ...s,
-                    corp: { ...s.corp, credits: next },
-                    log: [...s.log, { round: s.round, player: 'corp', message: `Credits ${sign}${d} → ${next}¢` }],
-                  };
-                });
-              }}
-            />
-            <View style={{ justifyContent: 'center', width: isLandscape ? 80 : 65 }}>
+            <View style={{ flex: 5, minWidth: 0 }}>
+              <CreditCounter
+                value={gs.corp.credits}
+                color={corpColor}
+                flushRef={corpCreditFlush}
+                onChange={d => {
+                  update(s => {
+                    const next = clamp(s.corp.credits + d, 0, 99);
+                    const sign = d > 0 ? '+' : '';
+                    return {
+                      ...s,
+                      corp: { ...s.corp, credits: next },
+                      log: [...s.log, { round: s.round, player: 'corp', message: `Credits ${sign}${d} → ${next}¢` }],
+                    };
+                  });
+                }}
+              />
+            </View>
+            <View style={{ flex: 1, justifyContent: 'center' }}>
               <StatChip
                 iconSource={BAD_PUB_ICON}
                 value={gs.corp.badPub}
@@ -490,26 +490,28 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             ))}
           </View>
 
-          {/* Credits + 2-col stat grid — flex: 1 fills remaining panel height */}
+          {/* Credits + stat chips — proportional flex split */}
           <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
-            <CreditCounter
-              value={gs.runner.credits}
-              color={runnerColor}
-              flushRef={runnerCreditFlush}
-              onChange={d => {
-                update(s => {
-                  const next = clamp(s.runner.credits + d, 0, 99);
-                  const sign = d > 0 ? '+' : '';
-                  return {
-                    ...s,
-                    runner: { ...s.runner, credits: next },
-                    log: [...s.log, { round: s.round, player: 'runner', message: `Credits ${sign}${d} → ${next}¢` }],
-                  };
-                });
-              }}
-            />
-            {/* Single-column stat chips — same compact style as corp BadPub */}
-            <View style={{ gap: 4, width: statColWidth }}>
+            <View style={{ flex: creditFlex, minWidth: 0 }}>
+              <CreditCounter
+                value={gs.runner.credits}
+                color={runnerColor}
+                flushRef={runnerCreditFlush}
+                onChange={d => {
+                  update(s => {
+                    const next = clamp(s.runner.credits + d, 0, 99);
+                    const sign = d > 0 ? '+' : '';
+                    return {
+                      ...s,
+                      runner: { ...s.runner, credits: next },
+                      log: [...s.log, { round: s.round, player: 'runner', message: `Credits ${sign}${d} → ${next}¢` }],
+                    };
+                  });
+                }}
+              />
+            </View>
+            {/* Single-column stat chips */}
+            <View style={{ gap: 4, flex: statFlex }}>
               <View style={{ flex: 1 }}>
                 <StatChip
                   iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} flexHeight
