@@ -241,14 +241,16 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
           borderWidth: gs.active === 'corp' ? 2 : 1,
           borderColor: rgba(corpColor, gs.active === 'corp' ? 0.6 : 0.2),
           opacity: gs.active === 'runner' ? theme.inactiveOpacity : 1,
-          transform: corpFlipped ? [{ rotate: '180deg' }] : [],
         }}>
           {/* Panel header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <View style={{ width: 3, height: 16, borderRadius: 2, backgroundColor: corpColor }} />
-            <FactionGlyph faction={corpFaction} size={22} />
+            <View style={{ width: 3, height: 16, borderRadius: 2, backgroundColor: corpColor, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }} />
+            <View style={{ transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <FactionGlyph faction={corpFaction} size={22} />
+            </View>
             <Text style={{
               fontFamily: 'Rajdhani_700Bold', fontSize: 13, letterSpacing: 2, color: corpColor,
+              transform: corpFlipped ? [{ rotate: '180deg' }] : [],
             }}>
               {corpFaction?.name || 'CORP'}
             </Text>
@@ -260,12 +262,13 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                 borderWidth: 1,
                 borderColor: rgba(corpColor, corpFlipped ? 0.5 : 0.2),
                 backgroundColor: corpFlipped ? rgba(corpColor, 0.12) : 'transparent',
+                transform: corpFlipped ? [{ rotate: '180deg' }] : [],
               }}
             >
               <Text style={{ fontSize: 11, color: rgba(corpColor, corpFlipped ? 0.9 : 0.4) }}>⇅</Text>
             </Pressable>
             {gs.active === 'corp' && (
-              <View style={{ flexDirection: 'row', gap: 6 }}>
+              <View style={{ flexDirection: 'row', gap: 6, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <ActionBtn
                   label="Draw" iconSource={HAND_ICON} color={corpColor}
                   onPress={() => {
@@ -294,23 +297,24 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
           {/* Click tokens */}
           <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
             {Array.from({ length: 3 + gs.corp.extra }, (_, i) => (
-              <ClickToken
-                key={i}
-                filled={i < gs.corp.clicks}
-                color={corpColor}
-                onTap={gs.active === 'corp'
-                  ? () => handleCorpTokenTap(i, i < gs.corp.clicks)
-                  : undefined}
-                ghost={i >= 3}
-                size={i >= 3 ? 38 : 46}
-                radius={theme.tokenRadius}
-              />
+              <View key={i} style={{ transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
+                <ClickToken
+                  filled={i < gs.corp.clicks}
+                  color={corpColor}
+                  onTap={gs.active === 'corp'
+                    ? () => handleCorpTokenTap(i, i < gs.corp.clicks)
+                    : undefined}
+                  ghost={i >= 3}
+                  size={i >= 3 ? 38 : 46}
+                  radius={theme.tokenRadius}
+                />
+              </View>
             ))}
           </View>
 
           {/* Credits + Bad Pub — specular to runner layout */}
           <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 5, minWidth: 0 }}>
+            <View style={{ flex: 5, minWidth: 0, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
               <CreditCounter
                 value={gs.corp.credits}
                 color={corpColor}
@@ -328,7 +332,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                 }}
               />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
               <StatChip
                 iconSource={BAD_PUB_ICON}
                 value={gs.corp.badPub}
@@ -344,16 +348,18 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
 
           {/* Extra click button */}
           <View style={{ alignItems: 'flex-end', marginTop: 6 }}>
-            <ExtraClickBtn
-              color={corpColor}
-              extra={gs.corp.extra}
-              onPress={() => update(s => {
-                const prev = s.corp.extra;
-                const next = (prev + 1) % 4;
-                const dc = next > prev ? 1 : -prev;
-                return { ...s, corp: { ...s.corp, extra: next, clicks: Math.max(0, s.corp.clicks + dc) } };
-              })}
-            />
+            <View style={{ transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <ExtraClickBtn
+                color={corpColor}
+                extra={gs.corp.extra}
+                onPress={() => update(s => {
+                  const prev = s.corp.extra;
+                  const next = (prev + 1) % 4;
+                  const dc = next > prev ? 1 : -prev;
+                  return { ...s, corp: { ...s.corp, extra: next, clicks: Math.max(0, s.corp.clicks + dc) } };
+                })}
+              />
+            </View>
           </View>
         </View>
 
@@ -415,14 +421,16 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
           borderWidth: gs.active === 'runner' ? 2 : 1,
           borderColor: rgba(runnerColor, gs.active === 'runner' ? 0.6 : 0.2),
           opacity: gs.active === 'corp' ? theme.inactiveOpacity : 1,
-          transform: runnerFlipped ? [{ rotate: '180deg' }] : [],
         }}>
           {/* Panel header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <View style={{ width: 3, height: 16, borderRadius: 2, backgroundColor: runnerColor }} />
-            <FactionGlyph faction={runnerFaction} size={22} />
+            <View style={{ width: 3, height: 16, borderRadius: 2, backgroundColor: runnerColor, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }} />
+            <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <FactionGlyph faction={runnerFaction} size={22} />
+            </View>
             <Text style={{
               fontFamily: 'Rajdhani_700Bold', fontSize: 13, letterSpacing: 2, color: runnerColor,
+              transform: runnerFlipped ? [{ rotate: '180deg' }] : [],
             }}>
               {runnerFaction?.name || 'RUNNER'}
             </Text>
@@ -434,12 +442,13 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                 borderWidth: 1,
                 borderColor: rgba(runnerColor, runnerFlipped ? 0.5 : 0.2),
                 backgroundColor: runnerFlipped ? rgba(runnerColor, 0.12) : 'transparent',
+                transform: runnerFlipped ? [{ rotate: '180deg' }] : [],
               }}
             >
               <Text style={{ fontSize: 11, color: rgba(runnerColor, runnerFlipped ? 0.9 : 0.4) }}>⇅</Text>
             </Pressable>
             {gs.active === 'runner' && (
-              <View style={{ flexDirection: 'row', gap: 6 }}>
+              <View style={{ flexDirection: 'row', gap: 6, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <ActionBtn
                   label="Draw" iconSource={HAND_ICON} color={runnerColor}
                   onPress={() => {
@@ -468,23 +477,24 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
           {/* Click tokens */}
           <View style={{ flexDirection: 'row', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
             {Array.from({ length: 4 + gs.runner.extra }, (_, i) => (
-              <ClickToken
-                key={i}
-                filled={i < gs.runner.clicks}
-                color={runnerColor}
-                onTap={gs.active === 'runner'
-                  ? () => handleRunnerTokenTap(i, i < gs.runner.clicks)
-                  : undefined}
-                ghost={i >= 4}
-                size={i >= 4 ? 35 : 42}
-                radius={theme.tokenRadius}
-              />
+              <View key={i} style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+                <ClickToken
+                  filled={i < gs.runner.clicks}
+                  color={runnerColor}
+                  onTap={gs.active === 'runner'
+                    ? () => handleRunnerTokenTap(i, i < gs.runner.clicks)
+                    : undefined}
+                  ghost={i >= 4}
+                  size={i >= 4 ? 35 : 42}
+                  radius={theme.tokenRadius}
+                />
+              </View>
             ))}
           </View>
 
           {/* Credits + stat chips — 5:1 flex split */}
           <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 5, minWidth: 0 }}>
+            <View style={{ flex: 5, minWidth: 0, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
               <CreditCounter
                 value={gs.runner.credits}
                 color={runnerColor}
@@ -504,7 +514,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             </View>
             {/* Single-column stat chips */}
             <View style={{ gap: 4, flex: 1 }}>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} flexHeight
                   onChange={d => {
@@ -513,7 +523,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                   }}
                 />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple} flexHeight
                   onChange={d => {
@@ -522,7 +532,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                   }}
                 />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={HAND_ICON} value={handSize} color={runnerColor} flexHeight
                   onChange={d => {
@@ -531,7 +541,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                   }}
                 />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={MU_ICON} value={gs.runner.mu} color={C.mu} flexHeight
                   onChange={d => {
@@ -540,7 +550,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                   }}
                 />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={LINK_ICON} value={gs.runner.link} color={C.link} flexHeight
                   onChange={d => {
@@ -554,16 +564,18 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
 
           {/* Extra click button — same layout as corp */}
           <View style={{ alignItems: 'flex-end', marginTop: 6 }}>
-            <ExtraClickBtn
-              color={runnerColor}
-              extra={gs.runner.extra}
-              onPress={() => update(s => {
-                const prev = s.runner.extra;
-                const next = (prev + 1) % 5;
-                const dc = next > prev ? 1 : -prev;
-                return { ...s, runner: { ...s.runner, extra: next, clicks: Math.max(0, s.runner.clicks + dc) } };
-              })}
-            />
+            <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <ExtraClickBtn
+                color={runnerColor}
+                extra={gs.runner.extra}
+                onPress={() => update(s => {
+                  const prev = s.runner.extra;
+                  const next = (prev + 1) % 5;
+                  const dc = next > prev ? 1 : -prev;
+                  return { ...s, runner: { ...s.runner, extra: next, clicks: Math.max(0, s.runner.clicks + dc) } };
+                })}
+              />
+            </View>
           </View>
         </View>
 
