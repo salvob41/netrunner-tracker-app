@@ -91,6 +91,10 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
   const [showLog, setShowLog] = useState(false);
   const insets = useSafeAreaInsets();
 
+  // Flush refs for credit counters — called before any turn transition.
+  const corpCreditFlush = React.useRef<() => void>(() => {});
+  const runnerCreditFlush = React.useRef<() => void>(() => {});
+
   const update = (fn: (s: GameState) => GameState) => setGs(prev => fn(prev));
 
   // Stable log appender — avoids re-creating closures in child handlers
@@ -111,6 +115,8 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
   }, [gs.corp.agenda, gs.runner.agenda, gs.winner]);
 
   const handleEndTurn = () => {
+    corpCreditFlush.current();
+    runnerCreditFlush.current();
     update(s => {
       if (s.active === 'corp') {
         return {
@@ -302,20 +308,28 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             <CreditCounter
               value={gs.corp.credits}
               color={corpColor}
-              onChange={d => update(s => ({
-                ...s,
-                corp: { ...s.corp, credits: clamp(s.corp.credits + d, 0, 99) },
-              }))}
+              flushRef={corpCreditFlush}
+              onChange={d => {
+                update(s => {
+                  const next = clamp(s.corp.credits + d, 0, 99);
+                  const sign = d > 0 ? '+' : '';
+                  return {
+                    ...s,
+                    corp: { ...s.corp, credits: next },
+                    log: [...s.log, { round: s.round, player: 'corp', message: `Credits ${sign}${d} → ${next}¢` }],
+                  };
+                });
+              }}
             />
             <View style={{ justifyContent: 'center' }}>
               <StatChip
                 iconSource={BAD_PUB_ICON}
                 value={gs.corp.badPub}
                 color={C.badpub}
-                onChange={d => update(s => ({
-                  ...s,
-                  corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) },
-                }))}
+                onChange={d => {
+                  update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
+                  addLog('corp', d > 0 ? 'Bad pub +1' : 'Bad pub −1');
+                }}
                 label="BAD PUB"
               />
             </View>
@@ -344,10 +358,10 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             }));
             addLog('corp', 'Scored agenda +1');
           }}
-          onDec={() => update(s => ({
-            ...s,
-            corp: { ...s.corp, agenda: clamp(s.corp.agenda - 1, 0, 99) },
-          }))}
+          onDec={() => {
+            update(s => ({ ...s, corp: { ...s.corp, agenda: clamp(s.corp.agenda - 1, 0, 99) } }));
+            addLog('corp', 'Agenda −1');
+          }}
         />
       </View>
 
@@ -465,10 +479,18 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             <CreditCounter
               value={gs.runner.credits}
               color={runnerColor}
-              onChange={d => update(s => ({
-                ...s,
-                runner: { ...s.runner, credits: clamp(s.runner.credits + d, 0, 99) },
-              }))}
+              flushRef={runnerCreditFlush}
+              onChange={d => {
+                update(s => {
+                  const next = clamp(s.runner.credits + d, 0, 99);
+                  const sign = d > 0 ? '+' : '';
+                  return {
+                    ...s,
+                    runner: { ...s.runner, credits: next },
+                    log: [...s.log, { round: s.round, player: 'runner', message: `Credits ${sign}${d} → ${next}¢` }],
+                  };
+                });
+              }}
             />
           </View>
 
@@ -476,24 +498,24 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
           <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
             <StatChip
               iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold}
-              onChange={d => update(s => ({
-                ...s,
-                runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) },
-              }))}
+              onChange={d => {
+                update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
+                addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
+              }}
             />
             <StatChip
               iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple}
-              onChange={d => update(s => ({
-                ...s,
-                runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) },
-              }))}
+              onChange={d => {
+                update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
+                addLog('runner', d > 0 ? 'Core damage +1' : 'Core damage −1');
+              }}
             />
             <StatChip
               iconSource={HAND_ICON} value={handSize} color={runnerColor}
-              onChange={d => update(s => ({
-                ...s,
-                runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) },
-              }))}
+              onChange={d => {
+                update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
+                addLog('runner', d > 0 ? 'Hand size +1' : 'Hand size −1');
+              }}
             />
           </View>
 
@@ -501,17 +523,17 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
           <View style={{ flexDirection: 'row', gap: 6 }}>
             <StatChip
               iconSource={MU_ICON} value={gs.runner.mu} color={C.mu}
-              onChange={d => update(s => ({
-                ...s,
-                runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) },
-              }))}
+              onChange={d => {
+                update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
+                addLog('runner', d > 0 ? 'MU +1' : 'MU −1');
+              }}
             />
             <StatChip
               iconSource={LINK_ICON} value={gs.runner.link} color={C.link}
-              onChange={d => update(s => ({
-                ...s,
-                runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) },
-              }))}
+              onChange={d => {
+                update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
+                addLog('runner', d > 0 ? 'Link +1' : 'Link −1');
+              }}
             />
             <View style={{ flex: 1 }} />
             <ExtraClickBtn
@@ -535,10 +557,10 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
             }));
             addLog('runner', 'Stole agenda +1');
           }}
-          onDec={() => update(s => ({
-            ...s,
-            runner: { ...s.runner, agenda: clamp(s.runner.agenda - 1, 0, 99) },
-          }))}
+          onDec={() => {
+            update(s => ({ ...s, runner: { ...s.runner, agenda: clamp(s.runner.agenda - 1, 0, 99) } }));
+            addLog('runner', 'Agenda −1');
+          }}
         />
       </View>
 
