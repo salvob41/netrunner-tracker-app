@@ -6,9 +6,9 @@ A single-screen game state tracker for [Android: Netrunner](https://nullsignal.g
 
 ## Screenshots
 
-| Faction picker | Game screen | Game log |
-| --- | --- | --- |
-| ![Setup screen](docs/v2-setup.png) | ![Game screen — Corp turn](docs/v2-game-corp-turn.png) | ![Game log](docs/v2-game-log.png) |
+| Faction picker | Corp turn | Runner turn | Game log |
+| --- | --- | --- | --- |
+| ![Setup screen](docs/v2-setup-selected.png) | ![Game screen — Corp turn](docs/v2-game-corp-turn.png) | ![Game screen — Runner turn](docs/v2-game-runner-turn.png) | ![Game log](docs/v2-game-log.png) |
 
 ## Why this exists
 
