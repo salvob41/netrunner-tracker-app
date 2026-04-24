@@ -6,9 +6,9 @@ A single-screen game state tracker for [Android: Netrunner](https://nullsignal.g
 
 ## Screenshots
 
-| Setup — pick your factions | Game screen — Corp turn |
-| --- | --- |
-| ![Faction picker](docs/expo-setup-screen.png) | ![Game screen with credit counters](docs/expo-game-credits-panel-fill.png) |
+| Faction picker | Game screen | Game log |
+| --- | --- | --- |
+| ![Setup screen](docs/v2-setup.png) | ![Game screen — Corp turn](docs/v2-game-corp-turn.png) | ![Game log](docs/v2-game-log.png) |
 
 ## Why this exists
 
@@ -16,14 +16,16 @@ Netrunner has a lot of game state to track: clicks, credits, agenda points, tags
 
 ## Features
 
-- **Faction setup screen** — pick Corp (HB, Jinteki, NBN, Weyland) and Runner (Anarch, Criminal, Shaper); each faction has its own color theme
-- **One-screen layout** — Corp and Runner panels always visible, no scrolling during play; active panel glows, inactive dims
-- **Giant split-tap credit counter** — fills the panel; left half = −1, right half = +1; number pops on change
-- **Click tokens** — tap to spend, tap spent token to restore; extra allotted clicks appear as ghost tokens
+- **Faction setup screen** — pick Corp (HB, Jinteki, NBN, Weyland) and Runner (Anarch, Criminal, Shaper) with official NSG faction glyphs; each faction has its own color theme
+- **One-screen layout** — Corp and Runner panels always visible, no scrolling; active panel glows, inactive dims at 72% opacity
+- **Giant split-tap credit counter** — fills the panel; left half = −1, right half = +1; number pops with scale animation on change; batched delta pill shows uncommitted changes
+- **Click tokens** — tap to spend, tap spent token to restore; extra clicks appear as smaller ghost tokens
 - **StatChip** — collapsed icon-only view, tap to expand into −/value/+ controls; covers tags, core damage, hand size, MU, link, bad pub
-- **Agenda tug-of-war** — vertical sidebar bar, Corp fills upward and Runner fills downward; 7 AP wins
-- **End Turn / action buttons** — Draw a card or take +¢ with one tap while spending a click
-- **Game log** — slide-up sheet with full event history, newest first
+- **Panel flip button** — rotate either panel 180° for across-table play
+- **Extra click button** — cycle extra temporary clicks (0→1→2→3→0); ghost tokens auto-fill and reset on end turn
+- **Agenda tug-of-war** — vertical 7-segment sidebar; Corp fills from top, Runner fills from bottom; first to 7 AP wins
+- **End Turn button** — transitions turn and resets temporary clicks; Draw and +¢ action buttons consume a click inline
+- **Game log** — slide-up sheet with full color-coded event history, newest first
 - **Win overlay** — faction glyph, name, and NEW GAME button
 - **Official iconography** — [Null Signal Games](https://nullsignal.games/) PNG assets, tinted per-faction at runtime via `tintColor`
 
@@ -74,17 +76,17 @@ src/
 │   ├── SetupScreen.tsx      # Faction picker UI
 │   └── GameScreen.tsx       # Full game tracker UI and state handlers
 └── components/
-    ├── CreditCounter.tsx    # Giant split-tap credit panel
-    ├── ClickToken.tsx       # Animated spend/restore click token
-    ├── StatChip.tsx         # Collapsible icon→expanded stat adjuster
+    ├── CreditCounter.tsx    # Giant split-tap credit panel with batched delta
+    ├── ClickToken.tsx       # Animated spend/restore click token (ghost variant)
+    ├── StatChip.tsx         # Collapsible icon→expanded stat adjuster (flexHeight mode)
     ├── AgendaBar.tsx        # Vertical 7-segment agenda tug-of-war
-    ├── FactionGlyph.tsx     # Circular faction badge
+    ├── FactionGlyph.tsx     # Circular faction badge with official NSG PNG
     ├── Icon.tsx             # NSG PNG icon with runtime tintColor
-    ├── LogSheet.tsx         # Slide-up event history sheet
+    ├── LogSheet.tsx         # Slide-up color-coded event history sheet
     └── WinOverlay.tsx       # Full-screen win announcement
 ```
 
-State is fully decoupled from UI — `state.ts` has no React imports and encodes all game rules (click counts, win threshold, turn structure). The screen components never make rule decisions; they only map state to widgets and call handlers.
+State is fully decoupled from UI — `state.ts` has no React imports and encodes all game rules (click counts, win threshold, turn structure). Screen components never make rule decisions; they only map state to widgets and call handlers.
 
 ## CI/CD
 

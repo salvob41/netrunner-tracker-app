@@ -59,6 +59,7 @@ export function LogSheet({ log, onClose }: Props) {
       opacity,
       justifyContent: 'flex-end',
       zIndex: 50,
+      elevation: 50,
     }]}>
       {/* Backdrop tap to dismiss */}
       <Pressable style={StyleSheet.absoluteFillObject} onPress={close} />
