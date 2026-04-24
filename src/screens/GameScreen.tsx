@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClickToken } from '../components/ClickToken';
 import { CreditCounter } from '../components/CreditCounter';
@@ -92,6 +92,8 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
   const [corpFlipped, setCorpFlipped] = useState(false);
   const [runnerFlipped, setRunnerFlipped] = useState(false);
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   // Flush refs for credit counters — called before any turn transition.
   const corpCreditFlush = React.useRef<() => void>(() => {});
@@ -326,7 +328,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
                 });
               }}
             />
-            <View style={{ justifyContent: 'center' }}>
+            <View style={{ justifyContent: 'center', width: isLandscape ? 80 : 65 }}>
               <StatChip
                 iconSource={BAD_PUB_ICON}
                 value={gs.corp.badPub}
@@ -499,7 +501,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
               }}
             />
             {/* Single-column stat chips — same compact style as corp BadPub */}
-            <View style={{ gap: 4 }}>
+            <View style={{ gap: 4, width: isLandscape ? 160 : 125 }}>
               <View style={{ flex: 1 }}>
                 <StatChip
                   iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} flexHeight
