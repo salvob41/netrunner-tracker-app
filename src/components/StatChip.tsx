@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 import { Icon } from './Icon';
 import { rgba } from '../theme';
@@ -12,110 +12,80 @@ interface Props {
   value: number;
   color: string;
   onChange: (delta: number) => void;
-  label?: string;
   chipHeight?: number;
   /** When true, chip fills its parent flex container instead of using a fixed height. */
   flexHeight?: boolean;
-  /** Called whenever the chip expands or collapses. */
-  onExpandChange?: (expanded: boolean) => void;
 }
 
-export function StatChip({ iconSource, value, color, onChange, label, chipHeight = 40, flexHeight = false, onExpandChange }: Props) {
-  const [expanded, setExpanded] = useState(false);
-
-  const toggleExpand = (val: boolean) => {
-    setExpanded(val);
-    onExpandChange?.(val);
-  };
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, flexHeight = false }: Props) {
+  const popAnim = useRef(new Animated.Value(1)).current;
   const { pending, bump } = useBatchedDelta(onChange);
 
   const displayValue = value + pending;
+  const active = displayValue > 0;
+
   const pillColor = pending >= 0 ? PILL_GREEN : PILL_RED;
   const pillLabel = pending > 0 ? `+${pending}` : `\u2212${Math.abs(pending)}`;
 
   const tap = (delta: number) => {
     bump(delta);
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 1.2, duration: 70, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 130, useNativeDriver: true }),
+      Animated.timing(popAnim, { toValue: 1.3, duration: 70, useNativeDriver: true }),
+      Animated.timing(popAnim, { toValue: 1, duration: 130, useNativeDriver: true }),
     ]).start();
   };
 
-  const sizeStyle = flexHeight ? {} : { height: chipHeight };
+  const sizeStyle = flexHeight ? { flex: 1 } : { height: chipHeight };
 
-  // Collapsed: shows only icon (+ pending pill if mid-burst); tap to expand into ±/value controls
-  if (!expanded) {
-    return (
+  return (
+    <View style={[{
+      borderRadius: 9, flexDirection: 'row',
+      backgroundColor: rgba(color, active ? 0.14 : 0.06),
+      borderWidth: 1, borderColor: rgba(color, active ? 0.50 : 0.22),
+    }, sizeStyle]}>
+      {/* Left half: decrement */}
       <Pressable
-        onPressIn={() => toggleExpand(true)}
-        style={[{
-          flex: 1, borderRadius: 8,
-          alignItems: 'center', justifyContent: 'center',
-          backgroundColor: rgba(color, 0.08),
-          borderWidth: 1, borderColor: rgba(color, 0.22),
-        }, sizeStyle]}
+        onPressIn={() => tap(-1)}
+        style={{ flex: 1, height: '100%' }}
+      />
+      {/* Right half: increment */}
+      <Pressable
+        onPressIn={() => tap(+1)}
+        style={{ flex: 1, height: '100%' }}
+      />
+      {/* Visual overlay (non-interactive) */}
+      <View
+        pointerEvents="none"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Icon source={iconSource} size={18} color={rgba(color, 0.75)} />
+        <Icon source={iconSource} size={22} color={rgba(color, active ? 1 : 0.6)} />
+        {active && (
+          <Animated.View style={{
+            position: 'absolute', top: -7, right: -7,
+            minWidth: 20, height: 20, borderRadius: 10,
+            paddingHorizontal: 5,
+            backgroundColor: color,
+            alignItems: 'center', justifyContent: 'center',
+            transform: [{ scale: popAnim }],
+          }}>
+            <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 12, fontWeight: '800', color: '#000', lineHeight: 14 }}>
+              {displayValue}
+            </Text>
+          </Animated.View>
+        )}
         {pending !== 0 && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute', top: 2, right: 2,
-              backgroundColor: rgba(pillColor, 0.18),
-              borderWidth: 1, borderColor: rgba(pillColor, 0.50),
-              borderRadius: 8, paddingVertical: 1, paddingHorizontal: 5,
-            }}
-          >
+          <View style={{
+            position: 'absolute', bottom: 2, right: 2,
+            backgroundColor: rgba(pillColor, 0.18),
+            borderWidth: 1, borderColor: rgba(pillColor, 0.50),
+            borderRadius: 8, paddingVertical: 1, paddingHorizontal: 5,
+          }}>
             <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 9, color: pillColor }}>
               {pillLabel}
             </Text>
           </View>
         )}
-      </Pressable>
-    );
-  }
-
-  return (
-    <View style={[{
-      flex: 1, borderRadius: 8, flexDirection: 'row',
-      alignItems: 'center', overflow: 'hidden',
-      backgroundColor: rgba(color, 0.10),
-      borderWidth: 1.5, borderColor: rgba(color, 0.45),
-    }, sizeStyle]}>
-      <Pressable
-        onPressIn={() => tap(-1)}
-        style={{ width: 28, height: '100%', alignItems: 'center', justifyContent: 'center' }}
-      >
-        <Text style={{ color: rgba(color, 0.6), fontSize: 16 }}>−</Text>
-      </Pressable>
-      {/* Tap center to collapse back to icon view — icon + number shown inline */}
-      <Pressable
-        onLongPress={() => toggleExpand(false)}
-        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 }}
-      >
-        <Icon source={iconSource} size={14} color={rgba(color, 0.7)} />
-        <Animated.Text style={{
-          fontFamily: 'ShareTechMono_400Regular',
-          fontSize: 20,
-          color,
-          lineHeight: 24,
-          transform: [{ scale: scaleAnim }],
-        }}>
-          {displayValue}
-        </Animated.Text>
-        {pending !== 0 && (
-          <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 9, color: pillColor, marginLeft: 2 }}>
-            {pillLabel}
-          </Text>
-        )}
-      </Pressable>
-      <Pressable
-        onPressIn={() => tap(+1)}
-        style={{ width: 28, height: '100%', alignItems: 'center', justifyContent: 'center' }}
-      >
-        <Text style={{ color: rgba(color, 0.6), fontSize: 16 }}>+</Text>
-      </Pressable>
+      </View>
     </View>
   );
 }
