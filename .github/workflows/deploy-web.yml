@@ -34,6 +34,34 @@ jobs:
           # Expo web export outputs to dist/
           EXPO_PUBLIC_BASE_PATH: /netrunner-tracker-app/
 
+      - name: Rewrite asset URLs for GitHub Pages subpath
+        run: |
+          node - <<'SCRIPT'
+          const fs = require('fs');
+          const path = require('path');
+
+          const basePath = '/netrunner-tracker-app';
+          const distDir = 'dist';
+          const indexPath = path.join(distDir, 'index.html');
+
+          let indexHtml = fs.readFileSync(indexPath, 'utf8');
+          indexHtml = indexHtml
+            .replaceAll('href="/', `href="${basePath}/`)
+            .replaceAll('src="/', `src="${basePath}/`);
+          fs.writeFileSync(indexPath, indexHtml);
+
+          const webDir = path.join(distDir, '_expo', 'static', 'js', 'web');
+          for (const entry of fs.readdirSync(webDir)) {
+            if (!entry.endsWith('.js')) continue;
+            const filePath = path.join(webDir, entry);
+            let js = fs.readFileSync(filePath, 'utf8');
+            js = js
+              .replaceAll('"/assets/', `"${basePath}/assets/`)
+              .replaceAll('"/_expo/', `"${basePath}/_expo/`);
+            fs.writeFileSync(filePath, js);
+          }
+          SCRIPT
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
