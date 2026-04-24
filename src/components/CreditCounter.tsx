@@ -29,8 +29,8 @@ export function CreditCounter({ value, color, onChange, label, flushRef }: Props
   const tap = (delta: number) => {
     bump(delta);
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 1.22, duration: 80, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 140, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 1.22, duration: 80, useNativeDriver: false }),
+      Animated.timing(scaleAnim, { toValue: 1, duration: 140, useNativeDriver: false }),
     ]).start();
   };
 
@@ -68,8 +68,8 @@ export function CreditCounter({ value, color, onChange, label, flushRef }: Props
         style={{
           position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
           alignItems: 'center', justifyContent: 'center', gap: 4,
+          pointerEvents: 'none',
         }}
-        pointerEvents="none"
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Icon source={CREDIT_ICON} size={26} color={rgba(color, 0.5)} />
@@ -92,12 +92,12 @@ export function CreditCounter({ value, color, onChange, label, flushRef }: Props
       {/* Pending pill — top-right, only when pending !== 0 */}
       {pending !== 0 && (
         <View
-          pointerEvents="none"
           style={{
             position: 'absolute', top: 6, right: 8,
             backgroundColor: rgba(pillColor, 0.18),
             borderWidth: 1, borderColor: rgba(pillColor, 0.50),
             borderRadius: 10, paddingVertical: 2, paddingHorizontal: 7,
+            pointerEvents: 'none',
           }}
         >
           <Text style={{
