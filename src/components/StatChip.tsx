@@ -16,10 +16,17 @@ interface Props {
   chipHeight?: number;
   /** When true, chip fills its parent flex container instead of using a fixed height. */
   flexHeight?: boolean;
+  /** Called whenever the chip expands or collapses. */
+  onExpandChange?: (expanded: boolean) => void;
 }
 
-export function StatChip({ iconSource, value, color, onChange, label, chipHeight = 40, flexHeight = false }: Props) {
+export function StatChip({ iconSource, value, color, onChange, label, chipHeight = 40, flexHeight = false, onExpandChange }: Props) {
   const [expanded, setExpanded] = useState(false);
+
+  const toggleExpand = (val: boolean) => {
+    setExpanded(val);
+    onExpandChange?.(val);
+  };
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const { pending, bump } = useBatchedDelta(onChange);
 
@@ -41,7 +48,7 @@ export function StatChip({ iconSource, value, color, onChange, label, chipHeight
   if (!expanded) {
     return (
       <Pressable
-        onPressIn={() => setExpanded(true)}
+        onPressIn={() => toggleExpand(true)}
         style={[{
           flex: 1, borderRadius: 8,
           alignItems: 'center', justifyContent: 'center',
@@ -84,7 +91,7 @@ export function StatChip({ iconSource, value, color, onChange, label, chipHeight
       </Pressable>
       {/* Tap center to collapse back to icon view — icon + number shown inline */}
       <Pressable
-        onLongPress={() => setExpanded(false)}
+        onLongPress={() => toggleExpand(false)}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 }}
       >
         <Icon source={iconSource} size={14} color={rgba(color, 0.7)} />
