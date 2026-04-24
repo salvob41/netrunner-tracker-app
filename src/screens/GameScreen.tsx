@@ -91,9 +91,17 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
   const [showLog, setShowLog] = useState(false);
   const [corpFlipped, setCorpFlipped] = useState(false);
   const [runnerFlipped, setRunnerFlipped] = useState(false);
+  const [runnerExpandCount, setRunnerExpandCount] = useState(0);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+
+  const onRunnerChipExpand = (exp: boolean) =>
+    setRunnerExpandCount(c => exp ? c + 1 : Math.max(0, c - 1));
+
+  const statColWidth = runnerExpandCount > 0
+    ? (isLandscape ? 160 : 125)
+    : 46;
 
   // Flush refs for credit counters — called before any turn transition.
   const corpCreditFlush = React.useRef<() => void>(() => {});
@@ -501,10 +509,11 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
               }}
             />
             {/* Single-column stat chips — same compact style as corp BadPub */}
-            <View style={{ gap: 4, width: isLandscape ? 160 : 125 }}>
+            <View style={{ gap: 4, width: statColWidth }}>
               <View style={{ flex: 1 }}>
                 <StatChip
                   iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} flexHeight
+                  onExpandChange={onRunnerChipExpand}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
                     addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
@@ -514,6 +523,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
               <View style={{ flex: 1 }}>
                 <StatChip
                   iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple} flexHeight
+                  onExpandChange={onRunnerChipExpand}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
                     addLog('runner', d > 0 ? 'Core damage +1' : 'Core damage −1');
@@ -523,6 +533,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
               <View style={{ flex: 1 }}>
                 <StatChip
                   iconSource={HAND_ICON} value={handSize} color={runnerColor} flexHeight
+                  onExpandChange={onRunnerChipExpand}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
                     addLog('runner', d > 0 ? 'Hand size +1' : 'Hand size −1');
@@ -532,6 +543,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
               <View style={{ flex: 1 }}>
                 <StatChip
                   iconSource={MU_ICON} value={gs.runner.mu} color={C.mu} flexHeight
+                  onExpandChange={onRunnerChipExpand}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
                     addLog('runner', d > 0 ? 'MU +1' : 'MU −1');
@@ -541,6 +553,7 @@ export function GameScreen({ corpFaction, runnerFaction, onReset, theme }: Props
               <View style={{ flex: 1 }}>
                 <StatChip
                   iconSource={LINK_ICON} value={gs.runner.link} color={C.link} flexHeight
+                  onExpandChange={onRunnerChipExpand}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
                     addLog('runner', d > 0 ? 'Link +1' : 'Link −1');
