@@ -103,6 +103,7 @@ GitHub Actions triggers:
 
 - Game design: [Null Signal Games](https://nullsignal.games/) (formerly NISEI / Fantasy Flight Games)
 - Icons: [NSG Visual Assets](https://nullsignal.games/about/resources/)
+- App icon: [City icon](https://www.flaticon.com/free-icon/city_4531210) by [Freepik](https://www.flaticon.com/authors/freepik) from [Flaticon](https://www.flaticon.com/)
 - Built with: [Expo](https://expo.dev/) + [React Native](https://reactnative.dev/)
 
 ## License
