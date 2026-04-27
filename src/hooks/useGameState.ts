@@ -104,13 +104,20 @@ export function useGameState({ corpFaction, runnerFaction, onReset, theme }: Use
     onReset();
   };
 
+  const handleReset = () => {
+    corpCreditFlush.current();
+    runnerCreditFlush.current();
+    setGs(makeInitialState());
+    onReset();
+  };
+
   return {
     gs, setGs, update, addLog,
     showLog, setShowLog,
     corpFlipped, setCorpFlipped,
     runnerFlipped, setRunnerFlipped,
     corpCreditFlush, runnerCreditFlush,
-    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame,
+    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset,
     corpColor, runnerColor, activeColor, handSize,
     corpFaction, runnerFaction, onReset, theme,
   };

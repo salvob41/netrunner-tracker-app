@@ -15,9 +15,10 @@ interface Props {
   chipHeight?: number;
   /** When true, chip fills its parent flex container instead of using a fixed height. */
   flexHeight?: boolean;
+  testID?: string;
 }
 
-export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, flexHeight = false }: Props) {
+export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, flexHeight = false, testID }: Props) {
   const popAnim = useRef(new Animated.Value(1)).current;
   const { pending, bump } = useBatchedDelta(onChange);
 
@@ -38,53 +39,45 @@ export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, 
   const sizeStyle = flexHeight ? { flex: 1 } : { height: chipHeight };
 
   return (
-    <View style={[{
-      borderRadius: 9, flexDirection: 'row',
-      backgroundColor: rgba(color, active ? 0.14 : 0.06),
-      borderWidth: 1, borderColor: rgba(color, active ? 0.50 : 0.22),
-    }, sizeStyle]}>
-      {/* Left half: decrement */}
-      <Pressable
-        onPressIn={() => tap(-1)}
-        style={{ flex: 1, height: '100%' }}
-      />
-      {/* Right half: increment */}
-      <Pressable
-        onPressIn={() => tap(+1)}
-        style={{ flex: 1, height: '100%' }}
-      />
-      {/* Visual overlay (non-interactive) */}
-      <View
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}
-      >
-        <Icon source={iconSource} size={22} color={rgba(color, active ? 1 : 0.6)} />
-        {active && (
-          <Animated.View style={{
-            position: 'absolute', top: -7, right: -7,
-            minWidth: 20, height: 20, borderRadius: 10,
-            paddingHorizontal: 5,
-            backgroundColor: color,
-            alignItems: 'center', justifyContent: 'center',
-            transform: [{ scale: popAnim }],
-          }}>
-            <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 12, fontWeight: '800', color: '#000', lineHeight: 14 }}>
-              {displayValue}
-            </Text>
-          </Animated.View>
-        )}
-        {pending !== 0 && (
-          <View style={{
-            position: 'absolute', bottom: 2, right: 2,
-            backgroundColor: rgba(pillColor, 0.18),
-            borderWidth: 1, borderColor: rgba(pillColor, 0.50),
-            borderRadius: 8, paddingVertical: 1, paddingHorizontal: 5,
-          }}>
-            <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 9, color: pillColor }}>
-              {pillLabel}
-            </Text>
-          </View>
-        )}
-      </View>
-    </View>
+    <Pressable
+      testID={testID}
+      onPress={() => tap(+1)}
+      onLongPress={() => tap(-1)}
+      delayLongPress={400}
+      style={[{
+        borderRadius: 9,
+        backgroundColor: rgba(color, active ? 0.14 : 0.06),
+        borderWidth: 1, borderColor: rgba(color, active ? 0.50 : 0.22),
+        alignItems: 'center', justifyContent: 'center',
+      }, sizeStyle]}
+    >
+      <Icon source={iconSource} size={22} color={rgba(color, active ? 1 : 0.6)} />
+      {active && (
+        <Animated.View style={{
+          position: 'absolute', top: -7, right: -7,
+          minWidth: 20, height: 20, borderRadius: 10,
+          paddingHorizontal: 5,
+          backgroundColor: color,
+          alignItems: 'center', justifyContent: 'center',
+          transform: [{ scale: popAnim }],
+        }}>
+          <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 12, fontWeight: '800', color: '#000', lineHeight: 14 }}>
+            {displayValue}
+          </Text>
+        </Animated.View>
+      )}
+      {pending !== 0 && (
+        <View style={{
+          position: 'absolute', bottom: 2, right: 2,
+          backgroundColor: rgba(pillColor, 0.18),
+          borderWidth: 1, borderColor: rgba(pillColor, 0.50),
+          borderRadius: 8, paddingVertical: 1, paddingHorizontal: 5,
+        }}>
+          <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 9, color: pillColor }}>
+            {pillLabel}
+          </Text>
+        </View>
+      )}
+    </Pressable>
   );
 }
