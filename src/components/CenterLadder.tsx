@@ -10,43 +10,23 @@ interface Props {
   runnerScore: number;
   corpColor: string;
   runnerColor: string;
-  onCorpScore: () => void;
-  onCorpDec: () => void;
-  onRunnerScore: () => void;
-  onRunnerDec: () => void;
+  onCorpChange: (delta: number) => void;
+  onRunnerChange: (delta: number) => void;
 }
 
 const MAX = 7;
 
 export function CenterLadder({
   corpScore, runnerScore, corpColor, runnerColor,
-  onCorpScore, onCorpDec, onRunnerScore, onRunnerDec,
+  onCorpChange, onRunnerChange,
 }: Props) {
   // Corp segments: fill from top (index 0 = top)
   const corpSegments = Array.from({ length: MAX }, (_, i) => i < corpScore);
   // Runner segments: fill from bottom (index 0 = top, so fill from MAX-1)
   const runnerSegments = Array.from({ length: MAX }, (_, i) => (MAX - 1 - i) < runnerScore);
 
-  const handleCorpTap = (i: number, filled: boolean) => {
-    // Tap unfilled → score+1, tap the last filled → score-1
-    if (!filled) {
-      onCorpScore();
-    } else if (i === corpScore - 1) {
-      onCorpDec();
-    }
-  };
-
-  const handleRunnerTap = (i: number, filled: boolean) => {
-    if (!filled) {
-      onRunnerScore();
-    } else if (i === MAX - runnerScore) {
-      // The topmost filled runner segment
-      onRunnerDec();
-    }
-  };
-
   return (
-    <View style={{ width: 74, alignItems: 'center', flexShrink: 0, paddingVertical: 2 }}>
+    <View style={{ width: 48, alignItems: 'center', flexShrink: 0, paddingVertical: 2 }}>
       {/* Corp score label */}
       <Text style={{
         fontFamily: 'ShareTechMono_400Regular',
@@ -61,12 +41,16 @@ export function CenterLadder({
         CORP
       </Text>
 
-      {/* Corp segments */}
-      <View style={{ gap: 3, width: '100%', flex: 1, justifyContent: 'center' }}>
+      {/* Corp segments — tap +1, long press -1 */}
+      <Pressable
+        onPress={() => onCorpChange(1)}
+        onLongPress={() => onCorpChange(-1)}
+        delayLongPress={400}
+        style={{ gap: 3, width: '100%', flex: 1, justifyContent: 'center' }}
+      >
         {corpSegments.map((filled, i) => (
-          <Pressable
+          <View
             key={`c${i}`}
-            onPressIn={() => handleCorpTap(i, filled)}
             style={{
               height: 10, maxHeight: 14, borderRadius: 3, width: '100%',
               backgroundColor: filled ? rgba(corpColor, 0.6) : rgba(corpColor, 0.08),
@@ -75,7 +59,7 @@ export function CenterLadder({
             }}
           />
         ))}
-      </View>
+      </Pressable>
 
       {/* Center agenda icon */}
       <View style={{ paddingVertical: 5, alignItems: 'center' }}>
@@ -88,12 +72,16 @@ export function CenterLadder({
         </Text>
       </View>
 
-      {/* Runner segments */}
-      <View style={{ gap: 3, width: '100%', flex: 1, justifyContent: 'center' }}>
+      {/* Runner segments — tap +1, long press -1 */}
+      <Pressable
+        onPress={() => onRunnerChange(1)}
+        onLongPress={() => onRunnerChange(-1)}
+        delayLongPress={400}
+        style={{ gap: 3, width: '100%', flex: 1, justifyContent: 'center' }}
+      >
         {runnerSegments.map((filled, i) => (
-          <Pressable
+          <View
             key={`r${i}`}
-            onPressIn={() => handleRunnerTap(i, filled)}
             style={{
               height: 10, maxHeight: 14, borderRadius: 3, width: '100%',
               backgroundColor: filled ? rgba(runnerColor, 0.6) : rgba(runnerColor, 0.08),
@@ -102,7 +90,7 @@ export function CenterLadder({
             }}
           />
         ))}
-      </View>
+      </Pressable>
 
       {/* Runner score label */}
       <Text style={{

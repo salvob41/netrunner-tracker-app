@@ -9,16 +9,19 @@ export function useBatchedDelta(
   const [pending, setPending] = useState(0);
   const pendingRef = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stable ref for commit — avoids stale-closure issues when parent re-renders
+  const commitRef = useRef(commit);
+  commitRef.current = commit;
 
   const flush = useCallback(() => {
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
     const d = pendingRef.current;
     if (d !== 0) {
-      commit(d);
+      commitRef.current(d);
       pendingRef.current = 0;
       setPending(0);
     }
-  }, [commit]);
+  }, []);
 
   const bump = useCallback((delta: number) => {
     pendingRef.current += delta;

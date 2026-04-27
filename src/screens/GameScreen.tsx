@@ -91,7 +91,7 @@ export function GameScreen({ game }: Props) {
     corpFlipped, setCorpFlipped,
     runnerFlipped, setRunnerFlipped,
     corpCreditFlush, runnerCreditFlush,
-    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame,
+    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset,
     corpColor, runnerColor, activeColor, handSize,
     corpFaction, runnerFaction, onReset, theme,
   } = game;
@@ -133,7 +133,7 @@ export function GameScreen({ game }: Props) {
         </View>
         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
           <Pressable
-            onPressIn={onReset}
+            onPressIn={handleReset}
             style={{
               padding: 6, paddingHorizontal: 10, borderRadius: 6,
               borderWidth: 1, borderColor: rgba(C.red, 0.2),
@@ -154,12 +154,12 @@ export function GameScreen({ game }: Props) {
         <View style={{
           flex: 1, borderRadius: 12, padding: 10,
           backgroundColor: gs.active === 'corp' ? rgba(corpColor, 0.06) : theme.panel,
-          borderWidth: gs.active === 'corp' ? 2 : 1,
-          borderColor: rgba(corpColor, gs.active === 'corp' ? 0.6 : 0.2),
+          borderWidth: 2,
+          borderColor: rgba(corpColor, gs.active === 'corp' ? 0.6 : 0.15),
           opacity: gs.active === 'runner' ? theme.inactiveOpacity : 1,
         }}>
           {/* Panel header */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, minHeight: 40 }}>
             <View style={{ width: 3, height: 16, borderRadius: 2, backgroundColor: corpColor, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }} />
             <View style={{ transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
               <FactionGlyph faction={corpFaction} size={22} />
@@ -283,16 +283,12 @@ export function GameScreen({ game }: Props) {
           score={gs.corp.agenda}
           color={corpColor}
           fillFromTop={true}
-          onTap={() => {
+          onChange={d => {
             update(s => ({
               ...s,
-              corp: { ...s.corp, agenda: clamp(s.corp.agenda + 1, 0, 99) },
+              corp: { ...s.corp, agenda: clamp(s.corp.agenda + d, -99, 99) },
             }));
-            addLog('corp', 'Scored agenda +1');
-          }}
-          onDec={() => {
-            update(s => ({ ...s, corp: { ...s.corp, agenda: clamp(s.corp.agenda - 1, 0, 99) } }));
-            addLog('corp', 'Agenda −1');
+            addLog('corp', d > 0 ? 'Scored agenda +1' : 'Agenda −1');
           }}
         />
       </View>
@@ -305,14 +301,14 @@ export function GameScreen({ game }: Props) {
             flex: 1, borderRadius: 10, padding: 12,
             alignItems: 'center', justifyContent: 'center',
             flexDirection: 'row', gap: 8,
-            backgroundColor: rgba(theme.green, 0.10),
-            borderWidth: 1, borderColor: rgba(theme.green, 0.45),
+            backgroundColor: rgba(activeColor, 0.10),
+            borderWidth: 1, borderColor: rgba(activeColor, 0.45),
           }}
         >
-          <Icon source={CLICK_ICON} size={14} color={theme.green} />
+          <Icon source={CLICK_ICON} size={14} color={activeColor} />
           <Text style={{
             fontSize: 12, fontWeight: '700', letterSpacing: 2.5,
-            color: theme.green, fontFamily: 'Rajdhani_700Bold',
+            color: activeColor, fontFamily: 'Rajdhani_700Bold',
           }}>
             END {gs.active === 'corp' ? 'CORP' : 'RUNNER'} TURN
           </Text>
@@ -334,12 +330,12 @@ export function GameScreen({ game }: Props) {
         <View style={{
           flex: 1, borderRadius: 12, padding: 10,
           backgroundColor: gs.active === 'runner' ? rgba(runnerColor, 0.06) : theme.panel,
-          borderWidth: gs.active === 'runner' ? 2 : 1,
-          borderColor: rgba(runnerColor, gs.active === 'runner' ? 0.6 : 0.2),
+          borderWidth: 2,
+          borderColor: rgba(runnerColor, gs.active === 'runner' ? 0.6 : 0.15),
           opacity: gs.active === 'corp' ? theme.inactiveOpacity : 1,
         }}>
           {/* Panel header */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, minHeight: 40 }}>
             <View style={{ width: 3, height: 16, borderRadius: 2, backgroundColor: runnerColor, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }} />
             <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
               <FactionGlyph faction={runnerFaction} size={22} />
@@ -499,16 +495,12 @@ export function GameScreen({ game }: Props) {
           score={gs.runner.agenda}
           color={runnerColor}
           fillFromTop={false}
-          onTap={() => {
+          onChange={d => {
             update(s => ({
               ...s,
-              runner: { ...s.runner, agenda: clamp(s.runner.agenda + 1, 0, 99) },
+              runner: { ...s.runner, agenda: clamp(s.runner.agenda + d, -99, 99) },
             }));
-            addLog('runner', 'Stole agenda +1');
-          }}
-          onDec={() => {
-            update(s => ({ ...s, runner: { ...s.runner, agenda: clamp(s.runner.agenda - 1, 0, 99) } }));
-            addLog('runner', 'Agenda −1');
+            addLog('runner', d > 0 ? 'Stole agenda +1' : 'Agenda −1');
           }}
         />
       </View>

@@ -5,13 +5,12 @@ import { rgba } from '../theme';
 interface Props {
   score: number;
   color: string;
-  onTap: () => void;
-  onDec: () => void;
+  onChange: (delta: number) => void;
   // fillFromTop=true for Corp (score fills from top); false for Runner (fills from bottom)
   fillFromTop?: boolean;
 }
 
-export function AgendaBar({ score, color, onTap, onDec, fillFromTop = true }: Props) {
+export function AgendaBar({ score, color, onChange, fillFromTop = true }: Props) {
   const MAX = 7;
   const barWidth = 28;
   // Build segment array: index 0 is visually top, MAX-1 is visually bottom
@@ -30,7 +29,9 @@ export function AgendaBar({ score, color, onTap, onDec, fillFromTop = true }: Pr
         </Text>
       )}
       <Pressable
-        onPressIn={onTap}
+        onPress={() => onChange(1)}
+        onLongPress={() => onChange(-1)}
+        delayLongPress={400}
         style={{ gap: 3, flex: 1, width: '100%' }}
       >
         {segments.map((filled, i) => (
@@ -41,9 +42,6 @@ export function AgendaBar({ score, color, onTap, onDec, fillFromTop = true }: Pr
             borderColor: rgba(color, filled ? 0.5 : 0.14),
           }} />
         ))}
-      </Pressable>
-      <Pressable onPressIn={onDec} style={{ paddingVertical: 3, paddingHorizontal: 6 }}>
-        <Text style={{ fontSize: 13, color: rgba(color, 0.4), lineHeight: 16 }}>−</Text>
       </Pressable>
       {!fillFromTop && (
         <Text style={{
