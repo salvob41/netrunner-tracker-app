@@ -1,50 +1,74 @@
 # Netrunner Game Tracker
 
-A single-screen game state tracker for [Android: Netrunner](https://nullsignal.games/), designed for fast, tap-first interaction during live play. Built with **React Native + Expo** (SDK 52, TypeScript) — runs on Android, web, and iOS.
+Single-screen game state tracker for [Android: Netrunner](https://nullsignal.games/). Tap-first, built with React Native + Expo (TypeScript). Runs in the browser, on Android, and on iOS.
 
-**[Try it in your browser](https://salvob41.github.io/netrunner-tracker-app/)**
+**[Try it in your browser →](https://salvob41.github.io/netrunner-tracker-app/)**
 
-## Screenshots
+## Tour
 
-| Faction picker | Corp turn | Runner turn | Game log |
-| --- | --- | --- | --- |
-| ![Setup screen](docs/v2-setup-selected.png) | ![Game screen — Corp turn](docs/v2-game-corp-turn.png) | ![Game screen — Runner turn](docs/v2-game-runner-turn.png) | ![Game log](docs/v2-game-log.png) |
+The tracker has two play modes — **Both** (Corp and Runner on one device) and **Solo** (just your side) — and adapts to **portrait** or **landscape** automatically. Below is one panel per screen, showing how each mode looks in each orientation.
 
-## Why this exists
+### Setup
 
-Netrunner has a lot of game state to track: clicks, credits, agenda points, tags, core damage, hand size, bad publicity, memory units, link strength — across two asymmetric factions. Pen and paper works, but it's easy to lose track during a tense run. This tracker keeps everything visible on one screen with a tap-to-adjust interface that stays out of the way.
+Pick the side(s) you want to track and the matching faction(s). Each faction tile glows in its own color when selected; **START GAME** unlocks once your selection is valid. The mode toggle (`BOTH` / `CORP` / `RUNNER`) at the top decides whether you'll see one panel or two during the game.
 
-## Features
+| Portrait | Landscape |
+| --- | --- |
+| ![Setup — portrait](docs/img/setup-portrait.png) | ![Setup — landscape](docs/img/setup-landscape.png) |
 
-- **Faction setup screen** — pick Corp (HB, Jinteki, NBN, Weyland) and Runner (Anarch, Criminal, Shaper) with official NSG faction glyphs; each faction has its own color theme
-- **One-screen layout** — Corp and Runner panels always visible, no scrolling; active panel glows, inactive dims at 72% opacity
-- **Giant split-tap credit counter** — fills the panel; left half = −1, right half = +1; number pops with scale animation on change; batched delta pill shows uncommitted changes
-- **Click tokens** — tap to spend, tap spent token to restore; extra clicks appear as smaller ghost tokens
-- **StatChip** — collapsed icon-only view, tap to expand into −/value/+ controls; covers tags, core damage, hand size, MU, link, bad pub
-- **Panel flip button** — rotate either panel 180° for across-table play
-- **Extra click button** — cycle extra temporary clicks (0→1→2→3→0); ghost tokens auto-fill and reset on end turn
-- **Agenda tug-of-war** — vertical 7-segment sidebar; Corp fills from top, Runner fills from bottom; first to 7 AP wins
-- **End Turn button** — transitions turn and resets temporary clicks; Draw and +¢ action buttons consume a click inline
-- **Game log** — slide-up sheet with full color-coded event history, newest first
-- **Win overlay** — faction glyph, name, and NEW GAME button
-- **Official iconography** — [Null Signal Games](https://nullsignal.games/) PNG assets, tinted per-faction at runtime via `tintColor`
+### Both mode — Corp and Runner on one device
 
-## Running locally
+The full two-sided tracker. Each side shows clicks (top), a split-tap credit counter (`–` left half subtracts, `+` right half adds), faction-specific stat chips, and a **+ click** button that cycles an extra-click counter (0→1→2→3) for cards like *Bankhar* or *Beth Kilrain-Chang*. The **`↑↓` flip button** rotates that side's panel 180° so the player across the table reads it right-side up. The shared **agenda bar** is the tug-of-war between the two scores: Corp fills from one end, Runner from the other, first to 7 wins.
+
+- **Portrait** stacks Corp on top of Runner with a horizontal agenda bar between them.
+- **Landscape** splits them left/right with a vertical agenda bar centered between the panels.
+
+| Portrait | Landscape |
+| --- | --- |
+| ![Both mode — portrait](docs/img/game-portrait-both.png) | ![Both mode — landscape](docs/img/game-landscape-both.png) |
+
+### Solo mode — track only your side
+
+If you're playing across the table from a human opponent, pick one side at setup. The opposing score is entered manually via the `OPP` chip in the header so the agenda bar still works. Stat chips on the side rail (tags, brain damage, hand size, MU, link, bad publicity) expand on tap so the less-used counters stay out of the way.
+
+| Solo Corp — portrait | Solo Runner — portrait |
+| --- | --- |
+| ![Solo Corp — portrait](docs/img/game-portrait-corp.png) | ![Solo Runner — portrait](docs/img/game-portrait-runner.png) |
+
+| Solo Corp — landscape | Solo Runner — landscape |
+| --- | --- |
+| ![Solo Corp — landscape](docs/img/game-landscape-corp.png) | ![Solo Runner — landscape](docs/img/game-landscape-runner.png) |
+
+### Game log
+
+Every action — clicks spent, credits taken, cards drawn, agendas scored or stolen, turn transitions — is recorded with its round number and side. Tap **GAME LOG** at the bottom (portrait) or the **LOG** chip in the header (landscape) to slide up the full history.
+
+| Portrait | Landscape |
+| --- | --- |
+| ![Game log — portrait](docs/img/log-portrait.png) | ![Game log — landscape](docs/img/log-landscape.png) |
+
+### Win overlay
+
+When either side reaches 7 agenda points, a win overlay covers the board with the winning faction and a **NEW GAME** button to reset.
+
+![Win overlay](docs/img/win-portrait.png)
+
+## Why
+
+Netrunner has a lot of state to track per side: clicks, credits, agenda points, tags, damage, hand size, MU, link, bad pub. This keeps it all on one screen so you can stay in the game.
+
+## Run locally
 
 ```bash
 npm install
-
-# Web (browser)
-npm run web
-
-# Start Metro (then scan QR for Expo Go on Android/iOS)
-npm start
+npm run web    # browser
+npm start      # Metro — scan the QR with Expo Go for Android/iOS
 ```
 
-## Building
+## Build
 
 ```bash
-# Android APK (requires Android SDK + JDK 17)
+# Android APK (needs Android SDK + JDK 17)
 npx expo prebuild --platform android
 cd android && ./gradlew assembleRelease
 
@@ -52,59 +76,33 @@ cd android && ./gradlew assembleRelease
 npx expo export --platform web   # → dist/
 ```
 
-### Android: "package conflicts with an existing package"
+For consistent Android signing across CI builds, set `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` as repo secrets — `.github/workflows/build-apk.yml` picks them up.
 
-Android only lets you update an app in place if the new APK is signed with the **same key** as the one already installed. By default, each CI run uses a fresh debug key — to get consistent signing across releases, add these GitHub Actions secrets:
+## Releasing
 
-| Secret | Value |
-| --- | --- |
-| `ANDROID_KEYSTORE_B64` | Base64 of your `.jks` upload keystore |
-| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
-| `ANDROID_KEY_ALIAS` | Key alias (usually `upload`) |
-| `ANDROID_KEY_PASSWORD` | Key password (omit if same as store password) |
+Tag `vX.Y.Z` to ship: APK release via `build-apk.yml`, web deploy to Pages on push to `main`.
 
-The workflow in `.github/workflows/build-apk.yml` picks these up automatically.
-
-## Architecture
+## Code layout
 
 ```
 src/
-├── App.tsx                  # Entry point: font loading, setup→game state machine
-├── theme.ts                 # Colors, faction definitions, atmosphere presets
-├── state.ts                 # Pure game state types and initial state factory
-├── screens/
-│   ├── SetupScreen.tsx      # Faction picker UI
-│   └── GameScreen.tsx       # Full game tracker UI and state handlers
-└── components/
-    ├── CreditCounter.tsx    # Giant split-tap credit panel with batched delta
-    ├── ClickToken.tsx       # Animated spend/restore click token (ghost variant)
-    ├── StatChip.tsx         # Collapsible icon→expanded stat adjuster (flexHeight mode)
-    ├── AgendaBar.tsx        # Vertical 7-segment agenda tug-of-war
-    ├── FactionGlyph.tsx     # Circular faction badge with official NSG PNG
-    ├── Icon.tsx             # NSG PNG icon with runtime tintColor
-    ├── LogSheet.tsx         # Slide-up color-coded event history sheet
-    └── WinOverlay.tsx       # Full-screen win announcement
+├── App.tsx                 # entry, orientation routing
+├── theme.ts                # colors, factions
+├── state.ts                # game state + rules
+├── hooks/                  # useGameState, useBatchedDelta
+├── screens/                # SetupScreen, GameScreen, GameScreenLandscape
+└── components/             # CreditCounter, ClickToken, StatChip, AgendaBar, …
 ```
 
-State is fully decoupled from UI — `state.ts` has no React imports and encodes all game rules (click counts, win threshold, turn structure). Screen components never make rule decisions; they only map state to widgets and call handlers.
-
-## CI/CD
-
-**Versioning (SemVer):** bump `patch` for bugfixes, `minor` for new user-visible behavior, `major` for rewrites. Tag `vX.Y.Z` to ship.
-
-GitHub Actions triggers:
-
-| Trigger | Workflow | Output |
-| --- | --- | --- |
-| Push tag `v*` | `build-apk.yml` | Android APK artifact + GitHub Release |
-| Push to `main` | `deploy-web.yml` | Static site → GitHub Pages |
+State lives in `state.ts` with no React imports — screens map state to widgets and call handlers, they don't make rule decisions.
 
 ## Credits
 
-- Game design: [Null Signal Games](https://nullsignal.games/) (formerly NISEI / Fantasy Flight Games)
+- Game: [Null Signal Games](https://nullsignal.games/) (formerly NISEI / FFG)
 - Icons: [NSG Visual Assets](https://nullsignal.games/about/resources/)
-- App icon: art from *WAKE Implant V2A-JRJ* ([card 33078](https://netrunnerdb.com/en/card/33078)), illus. Zefanya Langkan Maega © 2022 Null Signal Games
-- Built with: [Expo](https://expo.dev/) + [React Native](https://reactnative.dev/)
+- Hand icon: [Kalashnyk on Flaticon](https://www.flaticon.com/free-icon/five_9437501)
+- App icon art: *WAKE Implant V2A-JRJ* by Zefanya Langkan Maega ([NRDB 33078](https://netrunnerdb.com/en/card/33078)) © 2022 Null Signal Games
+- Built with [Expo](https://expo.dev/) + [React Native](https://reactnative.dev/)
 
 ## License
 

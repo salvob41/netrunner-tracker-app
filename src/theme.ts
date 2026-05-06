@@ -36,6 +36,8 @@ export function rgba(hex: string, alpha: number): string {
   return `rgba(${hex2rgb(hex)},${alpha})`;
 }
 
+export type PlayMode = 'both' | 'corp' | 'runner';
+
 export interface Faction {
   id: string;
   name: string;

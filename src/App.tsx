@@ -9,13 +9,15 @@ import {
 } from '@expo-google-fonts/rajdhani';
 import { ShareTechMono_400Regular } from '@expo-google-fonts/share-tech-mono';
 import { StatusBar } from 'expo-status-bar';
+import { useKeepAwake } from 'expo-keep-awake';
 import { SetupScreen } from './screens/SetupScreen';
 import { GameScreen } from './screens/GameScreen';
 import { GameScreenLandscape } from './screens/GameScreenLandscape';
 import { useGameState } from './hooks/useGameState';
-import { Faction, ATMOSPHERES } from './theme';
+import { Faction, PlayMode, ATMOSPHERES } from './theme';
 
 export default function App() {
+  useKeepAwake();
   const [fontsLoaded] = useFonts({
     Rajdhani_500Medium,
     Rajdhani_600SemiBold,
@@ -29,6 +31,7 @@ export default function App() {
   const [screen, setScreen] = useState<'setup' | 'game'>('setup');
   const [corpFaction, setCorpFaction] = useState<Faction | null>(null);
   const [runnerFaction, setRunnerFaction] = useState<Faction | null>(null);
+  const [mode, setMode] = useState<PlayMode>('both');
 
   // Default to Neon Punk theme; easily swappable in the future
   const atm = ATMOSPHERES['Neon Punk'];
@@ -42,6 +45,7 @@ export default function App() {
     setScreen('setup');
     setCorpFaction(null);
     setRunnerFaction(null);
+    setMode('both');
   };
 
   // Hook must be called unconditionally; uses fallback factions when on setup screen
@@ -60,9 +64,10 @@ export default function App() {
     );
   }
 
-  const handleStart = (corp: Faction, runner: Faction) => {
+  const handleStart = (corp: Faction, runner: Faction, m: PlayMode) => {
     setCorpFaction(corp);
     setRunnerFaction(runner);
+    setMode(m);
     setScreen('game');
   };
 
@@ -73,9 +78,9 @@ export default function App() {
         {screen === 'setup' ? (
           <SetupScreen onStart={handleStart} bg={theme.bg} />
         ) : isLandscape ? (
-          <GameScreenLandscape game={game} />
+          <GameScreenLandscape game={game} mode={mode} />
         ) : (
-          <GameScreen game={game} />
+          <GameScreen game={game} mode={mode} />
         )}
       </View>
     </SafeAreaProvider>
