@@ -26,7 +26,7 @@ export function CenterLadder({
   const runnerSegments = Array.from({ length: MAX }, (_, i) => (MAX - 1 - i) < runnerScore);
 
   return (
-    <View style={{ width: 48, alignItems: 'center', flexShrink: 0, paddingVertical: 2 }}>
+    <View style={{ width: 56, alignItems: 'center', flexShrink: 0, paddingVertical: 2 }}>
       {/* Corp score label */}
       <Text style={{
         fontFamily: 'ShareTechMono_400Regular',
@@ -52,7 +52,7 @@ export function CenterLadder({
           <View
             key={`c${i}`}
             style={{
-              height: 10, maxHeight: 14, borderRadius: 3, width: '100%',
+              flex: 1, minHeight: 12, maxHeight: 20, borderRadius: 4, width: '100%',
               backgroundColor: filled ? rgba(corpColor, 0.6) : rgba(corpColor, 0.08),
               borderWidth: 1,
               borderColor: rgba(corpColor, filled ? 0.45 : 0.12),
@@ -83,7 +83,7 @@ export function CenterLadder({
           <View
             key={`r${i}`}
             style={{
-              height: 10, maxHeight: 14, borderRadius: 3, width: '100%',
+              flex: 1, minHeight: 12, maxHeight: 20, borderRadius: 4, width: '100%',
               backgroundColor: filled ? rgba(runnerColor, 0.6) : rgba(runnerColor, 0.08),
               borderWidth: 1,
               borderColor: rgba(runnerColor, filled ? 0.45 : 0.12),

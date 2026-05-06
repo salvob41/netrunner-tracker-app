@@ -1,6 +1,6 @@
 {
   "name": "netrunner-tracker",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -14,7 +14,12 @@
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|react-native-svg)"
     ],
-    "moduleFileExtensions": ["ts", "tsx", "js", "jsx"],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx"
+    ],
     "transform": {
       "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
     }
@@ -28,6 +33,7 @@
     "expo-constants": "~17.0.8",
     "expo-file-system": "~18.0.12",
     "expo-font": "~13.0.0",
+    "expo-keep-awake": "~14.0.3",
     "expo-modules-core": "~2.2.3",
     "expo-status-bar": "~2.0.0",
     "react": "18.3.1",

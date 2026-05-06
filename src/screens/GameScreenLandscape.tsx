@@ -9,7 +9,8 @@ import { LogSheet } from '../components/LogSheet';
 import { WinOverlay } from '../components/WinOverlay';
 import { FactionGlyph } from '../components/FactionGlyph';
 import { Icon } from '../components/Icon';
-import { C, rgba } from '../theme';
+import { OppChip } from '../components/OppChip';
+import { C, PlayMode, rgba } from '../theme';
 import { clamp } from '../state';
 import { GameHook } from '../hooks/useGameState';
 
@@ -25,6 +26,7 @@ const AGENDA_ICON = require('../assets/agenda.png');
 
 interface Props {
   game: GameHook;
+  mode: PlayMode;
 }
 
 /** Small icon+label button for one-click actions (draw, take credit). */
@@ -84,7 +86,7 @@ function ExtraClickBtn({
   );
 }
 
-export function GameScreenLandscape({ game }: Props) {
+export function GameScreenLandscape({ game, mode }: Props) {
   const {
     gs, update, addLog,
     showLog, setShowLog,
@@ -97,6 +99,8 @@ export function GameScreenLandscape({ game }: Props) {
   } = game;
 
   const insets = useSafeAreaInsets();
+  const showCorp = mode !== 'runner';
+  const showRunner = mode !== 'corp';
 
   return (
     <View style={{
@@ -131,6 +135,34 @@ export function GameScreenLandscape({ game }: Props) {
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+          {mode === 'corp' && (
+            <OppChip
+              compact
+              oppSide="runner"
+              oppFaction={runnerFaction}
+              oppColor={runnerColor}
+              oppAgenda={gs.runner.agenda}
+              oppSecondary={gs.runner.tags}
+              onSecondaryDelta={d => {
+                update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
+                addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
+              }}
+            />
+          )}
+          {mode === 'runner' && (
+            <OppChip
+              compact
+              oppSide="corp"
+              oppFaction={corpFaction}
+              oppColor={corpColor}
+              oppAgenda={gs.corp.agenda}
+              oppSecondary={gs.corp.badPub}
+              onSecondaryDelta={d => {
+                update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
+                addLog('corp', d > 0 ? 'Bad pub +1' : 'Bad pub −1');
+              }}
+            />
+          )}
           <Pressable
             onPress={() => setShowLog(true)}
             style={{
@@ -169,7 +201,7 @@ export function GameScreenLandscape({ game }: Props) {
       <View style={{ flex: 1, flexDirection: 'row', gap: 6, minHeight: 0 }}>
 
         {/* Corp panel */}
-        <View style={{
+        {showCorp && <View style={{
           flex: 1, borderRadius: 10, padding: 8,
           backgroundColor: gs.active === 'corp' ? rgba(corpColor, 0.06) : theme.panel,
           borderWidth: 2,
@@ -290,9 +322,9 @@ export function GameScreenLandscape({ game }: Props) {
               })}
             />
           </View>
-        </View>
+        </View>}
 
-        {/* Center Ladder */}
+        {/* Center Ladder — both agendas always visible */}
         <CenterLadder
           corpScore={gs.corp.agenda}
           runnerScore={gs.runner.agenda}
@@ -315,7 +347,7 @@ export function GameScreenLandscape({ game }: Props) {
         />
 
         {/* Runner panel */}
-        <View style={{
+        {showRunner && <View style={{
           flex: 1, borderRadius: 10, padding: 8,
           backgroundColor: gs.active === 'runner' ? rgba(runnerColor, 0.06) : theme.panel,
           borderWidth: 2,
@@ -469,7 +501,7 @@ export function GameScreenLandscape({ game }: Props) {
               })}
             />
           </View>
-        </View>
+        </View>}
       </View>
 
       {/* Bottom bar — End Turn */}

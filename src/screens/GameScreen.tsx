@@ -5,11 +5,13 @@ import { ClickToken } from '../components/ClickToken';
 import { CreditCounter } from '../components/CreditCounter';
 import { StatChip } from '../components/StatChip';
 import { AgendaBar } from '../components/AgendaBar';
+import { MiniLadder } from '../components/MiniLadder';
 import { LogSheet } from '../components/LogSheet';
 import { WinOverlay } from '../components/WinOverlay';
 import { FactionGlyph } from '../components/FactionGlyph';
 import { Icon } from '../components/Icon';
-import { C, rgba } from '../theme';
+import { OppChip } from '../components/OppChip';
+import { C, PlayMode, rgba } from '../theme';
 import { clamp } from '../state';
 import { GameHook } from '../hooks/useGameState';
 
@@ -25,6 +27,7 @@ const AGENDA_ICON = require('../assets/agenda.png');
 
 interface Props {
   game: GameHook;
+  mode: PlayMode;
 }
 
 /** Small icon+label button for one-click actions (draw, take credit). */
@@ -84,7 +87,7 @@ function ExtraClickBtn({
   );
 }
 
-export function GameScreen({ game }: Props) {
+export function GameScreen({ game, mode }: Props) {
   const {
     gs, update, addLog,
     showLog, setShowLog,
@@ -97,6 +100,8 @@ export function GameScreen({ game }: Props) {
   } = game;
 
   const insets = useSafeAreaInsets();
+  const showCorp = mode !== 'runner';
+  const showRunner = mode !== 'corp';
 
   return (
     <View style={{
@@ -132,6 +137,32 @@ export function GameScreen({ game }: Props) {
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+          {mode === 'corp' && (
+            <OppChip
+              oppSide="runner"
+              oppFaction={runnerFaction}
+              oppColor={runnerColor}
+              oppAgenda={gs.runner.agenda}
+              oppSecondary={gs.runner.tags}
+              onSecondaryDelta={d => {
+                update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
+                addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
+              }}
+            />
+          )}
+          {mode === 'runner' && (
+            <OppChip
+              oppSide="corp"
+              oppFaction={corpFaction}
+              oppColor={corpColor}
+              oppAgenda={gs.corp.agenda}
+              oppSecondary={gs.corp.badPub}
+              onSecondaryDelta={d => {
+                update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
+                addLog('corp', d > 0 ? 'Bad pub +1' : 'Bad pub −1');
+              }}
+            />
+          )}
           <Pressable
             onPressIn={handleReset}
             style={{
@@ -150,7 +181,7 @@ export function GameScreen({ game }: Props) {
       </View>
 
       {/* Corp panel + agenda sidebar */}
-      <View style={{ flexDirection: 'row', gap: 7, flex: 5, minHeight: 0 }}>
+      {showCorp && <View style={{ flexDirection: 'row', gap: 7, flex: showRunner ? 5 : 1, minHeight: 0 }}>
         <View style={{
           flex: 1, borderRadius: 12, padding: 10,
           backgroundColor: gs.active === 'corp' ? rgba(corpColor, 0.06) : theme.panel,
@@ -228,9 +259,9 @@ export function GameScreen({ game }: Props) {
             ))}
           </View>
 
-          {/* Credits + Bad Pub — specular to runner layout */}
-          <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 5, minWidth: 0, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
+          {/* Credits + Bad Pub */}
+          <View style={{ flex: 1, flexDirection: 'row', gap: 8, alignItems: 'stretch' }}>
+            <View style={{ flex: 1, minWidth: 0, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
               <CreditCounter
                 value={gs.corp.credits}
                 color={corpColor}
@@ -248,12 +279,11 @@ export function GameScreen({ game }: Props) {
                 }}
               />
             </View>
-            <View style={{ flex: 1, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
+            <View style={{ transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
               <StatChip
                 iconSource={BAD_PUB_ICON}
                 value={gs.corp.badPub}
                 color={C.badpub}
-                flexHeight
                 onChange={d => {
                   update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
                   addLog('corp', d > 0 ? 'Bad pub +1' : 'Bad pub −1');
@@ -279,19 +309,21 @@ export function GameScreen({ game }: Props) {
           </View>
         </View>
 
-        <AgendaBar
-          score={gs.corp.agenda}
-          color={corpColor}
-          fillFromTop={true}
-          onChange={d => {
-            update(s => ({
-              ...s,
-              corp: { ...s.corp, agenda: clamp(s.corp.agenda + d, -99, 99) },
-            }));
-            addLog('corp', d > 0 ? 'Scored agenda +1' : 'Agenda −1');
-          }}
-        />
-      </View>
+        {showRunner && (
+          <AgendaBar
+            score={gs.corp.agenda}
+            color={corpColor}
+            fillFromTop={true}
+            onChange={d => {
+              update(s => ({
+                ...s,
+                corp: { ...s.corp, agenda: clamp(s.corp.agenda + d, -99, 99) },
+              }));
+              addLog('corp', d > 0 ? 'Scored agenda +1' : 'Agenda −1');
+            }}
+          />
+        )}
+      </View>}
 
       {/* End Turn button row */}
       <View style={{ flexDirection: 'row', gap: 7, flexShrink: 0 }}>
@@ -313,20 +345,46 @@ export function GameScreen({ game }: Props) {
             END {gs.active === 'corp' ? 'CORP' : 'RUNNER'} TURN
           </Text>
         </Pressable>
-        {/* Win condition reminder — width matches agenda bar (28px) */}
-        <View style={{ width: 28, alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-          <Icon source={AGENDA_ICON} size={16} color={C.gold} />
-          <Text style={{
-            fontSize: 6, letterSpacing: 0.5,
-            color: rgba(C.gold, 0.55), fontFamily: 'Rajdhani_700Bold',
-          }}>
-            7WIN
-          </Text>
-        </View>
+        {/* Win condition reminder — width matches agenda bars (both mode only) */}
+        {mode === 'both' && (
+          <View style={{ width: 28, alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <Icon source={AGENDA_ICON} size={16} color={C.gold} />
+            <Text style={{
+              fontSize: 6, letterSpacing: 0.5,
+              color: rgba(C.gold, 0.55), fontFamily: 'Rajdhani_700Bold',
+            }}>
+              7WIN
+            </Text>
+          </View>
+        )}
       </View>
 
+      {/* Bottom mini-ladder — solo mode only */}
+      {mode !== 'both' && (
+        <MiniLadder
+          corpScore={gs.corp.agenda}
+          runnerScore={gs.runner.agenda}
+          corpColor={corpColor}
+          runnerColor={runnerColor}
+          onCorpChange={d => {
+            update(s => ({
+              ...s,
+              corp: { ...s.corp, agenda: clamp(s.corp.agenda + d, -99, 99) },
+            }));
+            addLog('corp', d > 0 ? 'Scored agenda +1' : 'Agenda −1');
+          }}
+          onRunnerChange={d => {
+            update(s => ({
+              ...s,
+              runner: { ...s.runner, agenda: clamp(s.runner.agenda + d, -99, 99) },
+            }));
+            addLog('runner', d > 0 ? 'Stole agenda +1' : 'Agenda −1');
+          }}
+        />
+      )}
+
       {/* Runner panel + agenda sidebar */}
-      <View style={{ flexDirection: 'row', gap: 7, flex: 6, minHeight: 0 }}>
+      {showRunner && <View style={{ flexDirection: 'row', gap: 7, flex: showCorp ? 6 : 1, minHeight: 0 }}>
         <View style={{
           flex: 1, borderRadius: 12, padding: 10,
           backgroundColor: gs.active === 'runner' ? rgba(runnerColor, 0.06) : theme.panel,
@@ -491,19 +549,21 @@ export function GameScreen({ game }: Props) {
           </View>
         </View>
 
-        <AgendaBar
-          score={gs.runner.agenda}
-          color={runnerColor}
-          fillFromTop={false}
-          onChange={d => {
-            update(s => ({
-              ...s,
-              runner: { ...s.runner, agenda: clamp(s.runner.agenda + d, -99, 99) },
-            }));
-            addLog('runner', d > 0 ? 'Stole agenda +1' : 'Agenda −1');
-          }}
-        />
-      </View>
+        {showCorp && (
+          <AgendaBar
+            score={gs.runner.agenda}
+            color={runnerColor}
+            fillFromTop={false}
+            onChange={d => {
+              update(s => ({
+                ...s,
+                runner: { ...s.runner, agenda: clamp(s.runner.agenda + d, -99, 99) },
+              }));
+              addLog('runner', d > 0 ? 'Stole agenda +1' : 'Agenda −1');
+            }}
+          />
+        )}
+      </View>}
 
       {/* Game log bar — tap to open slide-up sheet */}
       <View style={{ flexShrink: 0 }}>
