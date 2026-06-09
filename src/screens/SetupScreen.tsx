@@ -204,7 +204,7 @@ export function SetupScreen({ onStart, bg }: Props) {
           TRACKSTER TAKA
         </Text>
         <Text style={{ fontSize: 11, letterSpacing: 2, color: C.dim, fontFamily: 'Rajdhani_600SemiBold' }}>
-          NETRUNNER COMPANION
+          NETRUNNER TOOL
         </Text>
       </View>
 
