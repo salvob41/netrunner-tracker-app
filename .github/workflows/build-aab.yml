@@ -1,0 +1,88 @@
+name: Build Android AAB (Play Store)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-aab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Patch build.gradle for release signing
+        run: |
+          node - <<'SCRIPT'
+          const fs = require('fs');
+          const p = 'android/app/build.gradle';
+          let c = fs.readFileSync(p, 'utf8');
+
+          c = c.replace('signingConfigs {', `signingConfigs {
+            release {
+                def sf = System.getenv('SIGNING_STORE_FILE')
+                if (sf) {
+                    storeFile file(sf)
+                    storePassword System.getenv('SIGNING_STORE_PASSWORD')
+                    keyAlias System.getenv('SIGNING_KEY_ALIAS')
+                    keyPassword System.getenv('SIGNING_KEY_PASSWORD') ?: System.getenv('SIGNING_STORE_PASSWORD')
+                }
+            }`);
+
+          c = c.replace(
+            /signingConfig signingConfigs\.debug(\s*\/\/[^\n]*)?/,
+            "signingConfig System.getenv('SIGNING_STORE_FILE') ? signingConfigs.release : signingConfigs.debug"
+          );
+
+          fs.writeFileSync(p, c);
+          console.log('build.gradle patched for release signing');
+          SCRIPT
+
+      - name: Configure keystore
+        run: |
+          if [ -z "$B64" ]; then
+            echo "::error::ANDROID_KEYSTORE_B64 secret missing — Play Store requires a real upload key."
+            exit 1
+          fi
+          KS="$RUNNER_TEMP/netrunner-upload.jks"
+          echo "$B64" | base64 -d > "$KS"
+          echo "SIGNING_STORE_FILE=$KS"               >> "$GITHUB_ENV"
+          echo "SIGNING_STORE_PASSWORD=$STORE_PASS"   >> "$GITHUB_ENV"
+          echo "SIGNING_KEY_ALIAS=${ALIAS:-upload}"   >> "$GITHUB_ENV"
+          echo "SIGNING_KEY_PASSWORD=${KEY_PASS}"     >> "$GITHUB_ENV"
+          echo "Release keystore configured."
+        env:
+          B64:        ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASS:   ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ALIAS:      ${{ secrets.ANDROID_KEY_ALIAS }}
+
+      - name: Build release AAB
+        run: cd android && ./gradlew bundleRelease --no-daemon
+
+      - name: Verify AAB signature
+        run: |
+          AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -1)
+          echo "Built: $AAB ($(du -h "$AAB" | cut -f1))"
+          unzip -p "$AAB" META-INF/MANIFEST.MF | head -5 || true
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netrunner-tracker-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30

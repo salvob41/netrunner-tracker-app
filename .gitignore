@@ -55,6 +55,14 @@ dmypy.json
 .env.*
 !.env.example
 
+# Android signing & Play Store credentials (NEVER COMMIT)
+*.keystore
+*.jks
+google-services.json
+google-service-account*.json
+play-service-account*.json
+credentials.json
+
 # IDE / editor
 .idea/
 *.sublime-project
