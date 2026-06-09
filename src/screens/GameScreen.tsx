@@ -11,6 +11,9 @@ import { WinOverlay } from '../components/WinOverlay';
 import { FactionGlyph } from '../components/FactionGlyph';
 import { Icon } from '../components/Icon';
 import { OppChip } from '../components/OppChip';
+import { DiceMarkSheet } from '../components/DiceMarkSheet';
+import { MarkChip } from '../components/MarkChip';
+import { DieIcon } from '../components/DieIcon';
 import { C, PlayMode, rgba } from '../theme';
 import { clamp } from '../state';
 import { GameHook } from '../hooks/useGameState';
@@ -91,10 +94,12 @@ export function GameScreen({ game, mode }: Props) {
   const {
     gs, update, addLog,
     showLog, setShowLog,
+    showDice, setShowDice,
     corpFlipped, setCorpFlipped,
     runnerFlipped, setRunnerFlipped,
     corpCreditFlush, runnerCreditFlush,
     handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset,
+    rollDie, rollMark, setMark, clearMark,
     corpColor, runnerColor, activeColor, handSize,
     corpFaction, runnerFaction, onReset, theme,
   } = game;
@@ -164,6 +169,17 @@ export function GameScreen({ game, mode }: Props) {
             />
           )}
           <Pressable
+            onPress={() => setShowDice(true)}
+            style={{
+              padding: 6, paddingHorizontal: 9, borderRadius: 6,
+              borderWidth: 1, borderColor: rgba(C.gold, 0.3),
+              backgroundColor: rgba(C.gold, 0.06),
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <DieIcon size={18} color={rgba(C.gold, 0.85)} />
+          </Pressable>
+          <Pressable
             onPressIn={handleReset}
             style={{
               padding: 6, paddingHorizontal: 10, borderRadius: 6,
@@ -179,6 +195,8 @@ export function GameScreen({ game, mode }: Props) {
           </Pressable>
         </View>
       </View>
+
+
 
       {/* Corp panel + agenda sidebar */}
       {showCorp && <View style={{ flexDirection: 'row', gap: 7, flex: showRunner ? 5 : 1, minHeight: 0 }}>
@@ -215,7 +233,7 @@ export function GameScreen({ game, mode }: Props) {
               <Text style={{ fontSize: 11, color: rgba(corpColor, corpFlipped ? 0.9 : 0.4) }}>⇅</Text>
             </Pressable>
             {gs.active === 'corp' && (
-              <View style={{ flexDirection: 'row', gap: 6, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
                 <ActionBtn
                   label="Draw" iconSource={HAND_ICON} color={corpColor}
                   onPress={() => {
@@ -292,8 +310,18 @@ export function GameScreen({ game, mode }: Props) {
             </View>
           </View>
 
-          {/* Extra click button */}
-          <View style={{ alignItems: 'flex-end', marginTop: 6 }}>
+          {/* Mark indicator — sits below the credits panel; rotated to match corp player orientation */}
+          <View style={{ marginTop: 6, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
+            <MarkChip
+              mark={gs.mark}
+              corpColor={corpColor}
+              onClear={clearMark}
+              onOverride={setMark}
+            />
+          </View>
+
+          {/* Extra click button — aligned to flex-start so it doesn't overlap badPub */}
+          <View style={{ alignItems: 'flex-start', marginTop: 6 }}>
             <View style={{ transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
               <ExtraClickBtn
                 color={corpColor}
@@ -482,47 +510,47 @@ export function GameScreen({ game, mode }: Props) {
                 }}
               />
             </View>
-            {/* Single-column stat chips */}
-            <View style={{ gap: 4, flex: 1 }}>
-              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+            {/* Single-column stat chips — packed tightly, top-aligned */}
+            <View style={{ gap: 6, alignItems: 'center', flex: 1 }}>
+              <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} flexHeight
+                  iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
                     addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
                   }}
                 />
               </View>
-              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple} flexHeight
+                  iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
                     addLog('runner', d > 0 ? 'Core damage +1' : 'Core damage −1');
                   }}
                 />
               </View>
-              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={HAND_ICON} value={handSize} color={runnerColor} flexHeight
+                  iconSource={HAND_ICON} value={handSize} color={runnerColor}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
                     addLog('runner', d > 0 ? 'Hand size +1' : 'Hand size −1');
                   }}
                 />
               </View>
-              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={MU_ICON} value={gs.runner.mu} color={C.mu} flexHeight
+                  iconSource={MU_ICON} value={gs.runner.mu} color={C.mu}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
                     addLog('runner', d > 0 ? 'MU +1' : 'MU −1');
                   }}
                 />
               </View>
-              <View style={{ flex: 1, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={LINK_ICON} value={gs.runner.link} color={C.link} flexHeight
+                  iconSource={LINK_ICON} value={gs.runner.link} color={C.link}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
                     addLog('runner', d > 0 ? 'Link +1' : 'Link −1');
@@ -532,8 +560,18 @@ export function GameScreen({ game, mode }: Props) {
             </View>
           </View>
 
-          {/* Extra click button — same layout as corp */}
-          <View style={{ alignItems: 'flex-end', marginTop: 6 }}>
+          {/* Mark indicator — runner side; rotated to match runner orientation */}
+          <View style={{ marginTop: 6, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+            <MarkChip
+              mark={gs.mark}
+              corpColor={corpColor}
+              onClear={clearMark}
+              onOverride={setMark}
+            />
+          </View>
+
+          {/* Extra click button — aligned to flex-start so it doesn't overlap stat chips */}
+          <View style={{ alignItems: 'flex-start', marginTop: 6 }}>
             <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
               <ExtraClickBtn
                 color={runnerColor}
@@ -595,6 +633,13 @@ export function GameScreen({ game, mode }: Props) {
 
       {/* Overlays */}
       {showLog && <LogSheet log={gs.log} onClose={() => setShowLog(false)} />}
+      {showDice && (
+        <DiceMarkSheet
+          onRollDie={rollDie}
+          onRollMark={rollMark}
+          onClose={() => setShowDice(false)}
+        />
+      )}
       {gs.winner && (
         <WinOverlay
           winner={gs.winner}

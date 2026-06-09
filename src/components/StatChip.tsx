@@ -1,7 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 import { Icon } from './Icon';
-import { rgba } from '../theme';
+import { C, rgba } from '../theme';
 import { useBatchedDelta } from '../hooks/useBatchedDelta';
 
 const PILL_GREEN = '#00f0a0';
@@ -13,20 +13,42 @@ interface Props {
   color: string;
   onChange: (delta: number) => void;
   chipHeight?: number;
+  chipWidth?: number;
   /** When true, chip fills its parent flex container instead of using a fixed height. */
   flexHeight?: boolean;
   testID?: string;
 }
 
-export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, flexHeight = false, testID }: Props) {
+const CHIP_WIDTH = 56;
+const CHIP_HEIGHT = 40;
+
+export function StatChip({ iconSource, value, color, onChange, chipHeight = CHIP_HEIGHT, chipWidth = CHIP_WIDTH, flexHeight = false, testID }: Props) {
   const popAnim = useRef(new Animated.Value(1)).current;
+  const hintOpacity = useRef(new Animated.Value(0)).current;
   const { pending, bump } = useBatchedDelta(onChange);
 
   const displayValue = value + pending;
   const active = displayValue > 0;
 
   const pillColor = pending >= 0 ? PILL_GREEN : PILL_RED;
-  const pillLabel = pending > 0 ? `+${pending}` : `\u2212${Math.abs(pending)}`;
+  const pillLabel = pending > 0 ? `+${pending}` : `−${Math.abs(pending)}`;
+
+  // Show "Hold to remove" hint the first time this chip transitions from 0 to >0.
+  const [showHint, setShowHint] = useState(false);
+  const hintShownRef = useRef(false);
+  const prevDisplayRef = useRef(displayValue);
+  useEffect(() => {
+    if (!hintShownRef.current && prevDisplayRef.current === 0 && displayValue > 0) {
+      hintShownRef.current = true;
+      setShowHint(true);
+      Animated.sequence([
+        Animated.timing(hintOpacity, { toValue: 1, duration: 200, useNativeDriver: false }),
+        Animated.delay(2400),
+        Animated.timing(hintOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
+      ]).start(() => setShowHint(false));
+    }
+    prevDisplayRef.current = displayValue;
+  }, [displayValue, hintOpacity]);
 
   const tap = (delta: number) => {
     bump(delta);
@@ -36,7 +58,11 @@ export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, 
     ]).start();
   };
 
-  const sizeStyle = flexHeight ? { flex: 1 } : { height: chipHeight };
+  // All chips are uniform 56×40 rectangles (wider than tall).
+  // flexHeight lets the chip stretch vertically while keeping fixed width.
+  const sizeStyle = flexHeight
+    ? { flex: 1, width: chipWidth }
+    : { height: chipHeight, width: chipWidth };
 
   return (
     <Pressable
@@ -45,23 +71,23 @@ export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, 
       onLongPress={() => tap(-1)}
       delayLongPress={400}
       style={[{
-        borderRadius: 9,
+        borderRadius: 10,
         backgroundColor: rgba(color, active ? 0.14 : 0.06),
         borderWidth: 1, borderColor: rgba(color, active ? 0.50 : 0.22),
         alignItems: 'center', justifyContent: 'center',
       }, sizeStyle]}
     >
-      <Icon source={iconSource} size={22} color={rgba(color, active ? 1 : 0.6)} />
+      <Icon source={iconSource} size={24} color={rgba(color, active ? 1 : 0.6)} />
       {active && (
         <Animated.View style={{
-          position: 'absolute', top: -7, right: -7,
-          minWidth: 20, height: 20, borderRadius: 10,
-          paddingHorizontal: 5,
+          position: 'absolute', top: -8, right: -8,
+          minWidth: 24, height: 24, borderRadius: 12,
+          paddingHorizontal: 6,
           backgroundColor: color,
           alignItems: 'center', justifyContent: 'center',
           transform: [{ scale: popAnim }],
         }}>
-          <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 12, fontWeight: '800', color: '#000', lineHeight: 14 }}>
+          <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 14, fontWeight: '800', color: '#000', lineHeight: 16 }}>
             {displayValue}
           </Text>
         </Animated.View>
@@ -77,6 +103,30 @@ export function StatChip({ iconSource, value, color, onChange, chipHeight = 40, 
             {pillLabel}
           </Text>
         </View>
+      )}
+      {showHint && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', top: '100%', marginTop: 6,
+            backgroundColor: '#0d1119',
+            borderWidth: 1, borderColor: rgba(color, 0.5),
+            borderRadius: 6, paddingVertical: 4, paddingHorizontal: 8,
+            opacity: hintOpacity,
+            zIndex: 100, elevation: 8,
+            width: 160,
+          }}
+        >
+          <Text
+            numberOfLines={1}
+            style={{
+              fontSize: 10, color: C.text, fontFamily: 'Rajdhani_600SemiBold',
+              letterSpacing: 0.5, textAlign: 'center',
+            }}
+          >
+            Keep pressed to remove 1
+          </Text>
+        </Animated.View>
       )}
     </Pressable>
   );

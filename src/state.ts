@@ -24,6 +24,8 @@ export interface RunnerState {
   link: number;
 }
 
+export type Mark = 'HQ' | 'R&D' | 'Archives';
+
 export interface GameState {
   round: number;
   active: 'corp' | 'runner';
@@ -31,6 +33,7 @@ export interface GameState {
   runner: RunnerState;
   log: LogEntry[];
   winner: 'corp' | 'runner' | null;
+  mark: Mark | null;
 }
 
 export function makeInitialState(): GameState {
@@ -41,6 +44,7 @@ export function makeInitialState(): GameState {
     runner: { clicks:4, extra:0, credits:5, agenda:0, tags:0, brain:0, handBonus:0, mu:4, link:0 },
     log: [{ round:0, player:'game', message:'Game started' }],
     winner: null,
+    mark: null,
   };
 }
 

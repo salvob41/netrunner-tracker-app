@@ -10,6 +10,9 @@ import { WinOverlay } from '../components/WinOverlay';
 import { FactionGlyph } from '../components/FactionGlyph';
 import { Icon } from '../components/Icon';
 import { OppChip } from '../components/OppChip';
+import { DiceMarkSheet } from '../components/DiceMarkSheet';
+import { MarkChip } from '../components/MarkChip';
+import { DieIcon } from '../components/DieIcon';
 import { C, PlayMode, rgba } from '../theme';
 import { clamp } from '../state';
 import { GameHook } from '../hooks/useGameState';
@@ -90,10 +93,12 @@ export function GameScreenLandscape({ game, mode }: Props) {
   const {
     gs, update, addLog,
     showLog, setShowLog,
+    showDice, setShowDice,
     corpFlipped, setCorpFlipped,
     runnerFlipped, setRunnerFlipped,
     corpCreditFlush, runnerCreditFlush,
     handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset,
+    rollDie, rollMark, setMark, clearMark,
     corpColor, runnerColor, activeColor, handSize,
     corpFaction, runnerFaction, onReset, theme,
   } = game;
@@ -181,6 +186,17 @@ export function GameScreenLandscape({ game, mode }: Props) {
             }}>{gs.log.length}</Text>
           </Pressable>
           <Pressable
+            onPress={() => setShowDice(true)}
+            style={{
+              padding: 4, paddingHorizontal: 7, borderRadius: 6,
+              borderWidth: 1, borderColor: rgba(C.gold, 0.3),
+              backgroundColor: rgba(C.gold, 0.06),
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <DieIcon size={15} color={rgba(C.gold, 0.85)} />
+          </Pressable>
+          <Pressable
             onPressIn={handleReset}
             style={{
               padding: 4, paddingHorizontal: 8, borderRadius: 6,
@@ -196,6 +212,8 @@ export function GameScreenLandscape({ game, mode }: Props) {
           </Pressable>
         </View>
       </View>
+
+
 
       {/* Main row: Corp | Ladder | Runner */}
       <View style={{ flex: 1, flexDirection: 'row', gap: 6, minHeight: 0 }}>
@@ -233,7 +251,7 @@ export function GameScreenLandscape({ game, mode }: Props) {
               <Text style={{ fontSize: 10, color: rgba(corpColor, corpFlipped ? 0.9 : 0.4) }}>⇅</Text>
             </Pressable>
             {gs.active === 'corp' && (
-              <View style={{ flexDirection: 'row', gap: 4, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
+              <View style={{ flexDirection: 'row', gap: 4 }}>
                 <ActionBtn
                   label="Draw" iconSource={HAND_ICON} color={corpColor}
                   onPress={() => {
@@ -297,20 +315,8 @@ export function GameScreenLandscape({ game, mode }: Props) {
             />
           </View>
 
-          {/* Bad pub + extra click row */}
+          {/* Extra click + bad pub row — extra click moved to the left to avoid chip overlap */}
           <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, alignItems: 'center', transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
-            <View style={{ flex: 1, height: 36 }}>
-              <StatChip
-                iconSource={BAD_PUB_ICON}
-                value={gs.corp.badPub}
-                color={C.badpub}
-                flexHeight
-                onChange={d => {
-                  update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
-                  addLog('corp', d > 0 ? 'Bad pub +1' : 'Bad pub −1');
-                }}
-              />
-            </View>
             <ExtraClickBtn
               color={corpColor}
               extra={gs.corp.extra}
@@ -320,6 +326,28 @@ export function GameScreenLandscape({ game, mode }: Props) {
                 const dc = next > prev ? 1 : -prev;
                 return { ...s, corp: { ...s.corp, extra: next, clicks: Math.max(0, s.corp.clicks + dc) } };
               })}
+            />
+            <View style={{ flex: 1 }}>
+              <StatChip
+                iconSource={BAD_PUB_ICON}
+                value={gs.corp.badPub}
+                color={C.badpub}
+                onChange={d => {
+                  update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
+                  addLog('corp', d > 0 ? 'Bad pub +1' : 'Bad pub −1');
+                }}
+              />
+            </View>
+          </View>
+
+          {/* Mark indicator — rotated to match corp player orientation */}
+          <View style={{ marginTop: 4, transform: corpFlipped ? [{ rotate: '180deg' }] : [] }}>
+            <MarkChip
+              mark={gs.mark}
+              corpColor={corpColor}
+              onClear={clearMark}
+              onOverride={setMark}
+              compact
             />
           </View>
         </View>}
@@ -443,53 +471,8 @@ export function GameScreenLandscape({ game, mode }: Props) {
             />
           </View>
 
-          {/* Stat chips row + extra click */}
+          {/* Extra click + stat chips row — extra click moved to the left to avoid chip overlap */}
           <View style={{ flexDirection: 'row', gap: 4, marginTop: 6, alignItems: 'center', transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
-            <View style={{ flex: 1, height: 36 }}>
-              <StatChip
-                iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} flexHeight
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
-                  addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
-                }}
-              />
-            </View>
-            <View style={{ flex: 1, height: 36 }}>
-              <StatChip
-                iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple} flexHeight
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
-                  addLog('runner', d > 0 ? 'Core damage +1' : 'Core damage −1');
-                }}
-              />
-            </View>
-            <View style={{ flex: 1, height: 36 }}>
-              <StatChip
-                iconSource={HAND_ICON} value={handSize} color={runnerColor} flexHeight
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
-                  addLog('runner', d > 0 ? 'Hand size +1' : 'Hand size −1');
-                }}
-              />
-            </View>
-            <View style={{ flex: 1, height: 36 }}>
-              <StatChip
-                iconSource={MU_ICON} value={gs.runner.mu} color={C.mu} flexHeight
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
-                  addLog('runner', d > 0 ? 'MU +1' : 'MU −1');
-                }}
-              />
-            </View>
-            <View style={{ flex: 1, height: 36 }}>
-              <StatChip
-                iconSource={LINK_ICON} value={gs.runner.link} color={C.link} flexHeight
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
-                  addLog('runner', d > 0 ? 'Link +1' : 'Link −1');
-                }}
-              />
-            </View>
             <ExtraClickBtn
               color={runnerColor}
               extra={gs.runner.extra}
@@ -500,7 +483,64 @@ export function GameScreenLandscape({ game, mode }: Props) {
                 return { ...s, runner: { ...s.runner, extra: next, clicks: Math.max(0, s.runner.clicks + dc) } };
               })}
             />
+            <View>
+              <StatChip
+                iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold}
+                onChange={d => {
+                  update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
+                  addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
+                }}
+              />
+            </View>
+            <View>
+              <StatChip
+                iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple}
+                onChange={d => {
+                  update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
+                  addLog('runner', d > 0 ? 'Core damage +1' : 'Core damage −1');
+                }}
+              />
+            </View>
+            <View>
+              <StatChip
+                iconSource={HAND_ICON} value={handSize} color={runnerColor}
+                onChange={d => {
+                  update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
+                  addLog('runner', d > 0 ? 'Hand size +1' : 'Hand size −1');
+                }}
+              />
+            </View>
+            <View>
+              <StatChip
+                iconSource={MU_ICON} value={gs.runner.mu} color={C.mu}
+                onChange={d => {
+                  update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
+                  addLog('runner', d > 0 ? 'MU +1' : 'MU −1');
+                }}
+              />
+            </View>
+            <View>
+              <StatChip
+                iconSource={LINK_ICON} value={gs.runner.link} color={C.link}
+                onChange={d => {
+                  update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
+                  addLog('runner', d > 0 ? 'Link +1' : 'Link −1');
+                }}
+              />
+            </View>
           </View>
+
+          {/* Mark indicator — rotated to match runner orientation */}
+          <View style={{ marginTop: 4, transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
+            <MarkChip
+              mark={gs.mark}
+              corpColor={corpColor}
+              onClear={clearMark}
+              onOverride={setMark}
+              compact
+            />
+          </View>
+
         </View>}
       </View>
 
@@ -528,6 +568,13 @@ export function GameScreenLandscape({ game, mode }: Props) {
 
       {/* Overlays */}
       {showLog && <LogSheet log={gs.log} onClose={() => setShowLog(false)} />}
+      {showDice && (
+        <DiceMarkSheet
+          onRollDie={rollDie}
+          onRollMark={rollMark}
+          onClose={() => setShowDice(false)}
+        />
+      )}
       {gs.winner && (
         <WinOverlay
           winner={gs.winner}

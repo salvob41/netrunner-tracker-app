@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import * as Haptics from 'expo-haptics';
 import { Faction, Atmosphere } from '../theme';
-import { makeInitialState, clamp, GameState } from '../state';
+import { makeInitialState, clamp, GameState, Mark } from '../state';
 
 interface UseGameStateProps {
   corpFaction: Faction;
@@ -12,7 +13,8 @@ interface UseGameStateProps {
 export function useGameState({ corpFaction, runnerFaction, onReset, theme }: UseGameStateProps) {
   const [gs, setGs] = useState<GameState>(makeInitialState);
   const [showLog, setShowLog] = useState(false);
-  const [corpFlipped, setCorpFlipped] = useState(false);
+  const [showDice, setShowDice] = useState(false);
+  const [corpFlipped, setCorpFlipped] = useState(true);
   const [runnerFlipped, setRunnerFlipped] = useState(false);
 
   // Flush refs for credit counters — called before any turn transition.
@@ -52,20 +54,64 @@ export function useGameState({ corpFaction, runnerFaction, onReset, theme }: Use
         };
       } else {
         const nextRound = s.round + 1;
+        const markWasSet = s.mark !== null;
         return {
           ...s,
           round: nextRound,
           active: 'corp',
           runner: { ...s.runner, extra: 0 },
           corp: { ...s.corp, clicks: 3 + s.corp.extra },
+          mark: null,
           log: [...s.log, {
             round: s.round, player: 'game',
-            message: `Round ${s.round} complete · Round ${nextRound} begins`,
+            message: `Round ${s.round} complete · Round ${nextRound} begins${markWasSet ? ' · Mark cleared' : ''}`,
           }],
         };
       }
     });
   };
+
+  /** Roll a generic die (1..sides). Logs and vibrates briefly. Returns the result. */
+  const rollDie = useCallback((sides: number): number => {
+    const result = 1 + Math.floor(Math.random() * sides);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setGs(prev => ({
+      ...prev,
+      log: [...prev.log, { round: prev.round, player: 'game', message: `Rolled d${sides}: ${result}` }],
+    }));
+    return result;
+  }, []);
+
+  /** Roll the marked central (d3 → HQ/R&D/Archives), set mark, log. Returns the central. */
+  const rollMark = useCallback((): Mark => {
+    const centrals: Mark[] = ['HQ', 'R&D', 'Archives'];
+    const result = centrals[Math.floor(Math.random() * 3)];
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setGs(prev => ({
+      ...prev,
+      mark: result,
+      log: [...prev.log, { round: prev.round, player: 'game', message: `Mark: ${result}` }],
+    }));
+    return result;
+  }, []);
+
+  /** Manually set the mark (no roll). Logs and replaces any existing mark. */
+  const setMark = useCallback((m: Mark) => {
+    setGs(prev => ({
+      ...prev,
+      mark: m,
+      log: [...prev.log, { round: prev.round, player: 'game', message: `Mark set: ${m}` }],
+    }));
+  }, []);
+
+  /** Clear the mark manually. Logs only if a mark was set. */
+  const clearMark = useCallback(() => {
+    setGs(prev => prev.mark === null ? prev : {
+      ...prev,
+      mark: null,
+      log: [...prev.log, { round: prev.round, player: 'game', message: 'Mark cleared' }],
+    });
+  }, []);
 
   const corpColor = corpFaction?.color || theme.corp;
   const runnerColor = runnerFaction?.color || theme.runner;
@@ -114,10 +160,12 @@ export function useGameState({ corpFaction, runnerFaction, onReset, theme }: Use
   return {
     gs, setGs, update, addLog,
     showLog, setShowLog,
+    showDice, setShowDice,
     corpFlipped, setCorpFlipped,
     runnerFlipped, setRunnerFlipped,
     corpCreditFlush, runnerCreditFlush,
     handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset,
+    rollDie, rollMark, setMark, clearMark,
     corpColor, runnerColor, activeColor, handSize,
     corpFaction, runnerFaction, onReset, theme,
   };
