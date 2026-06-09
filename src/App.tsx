@@ -10,14 +10,20 @@ import {
 import { ShareTechMono_400Regular } from '@expo-google-fonts/share-tech-mono';
 import { StatusBar } from 'expo-status-bar';
 import { useKeepAwake } from 'expo-keep-awake';
+import * as SplashScreen from 'expo-splash-screen';
 import { SetupScreen } from './screens/SetupScreen';
 import { GameScreen } from './screens/GameScreen';
 import { GameScreenLandscape } from './screens/GameScreenLandscape';
+import { IntroSplash } from './components/IntroSplash';
 import { useGameState } from './hooks/useGameState';
 import { Faction, PlayMode, ATMOSPHERES } from './theme';
 
+// Keep the native splash visible until IntroSplash takes over.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function App() {
   useKeepAwake();
+  const [introDone, setIntroDone] = useState(false);
   const [fontsLoaded] = useFonts({
     Rajdhani_500Medium,
     Rajdhani_600SemiBold,
@@ -55,6 +61,10 @@ export default function App() {
     onReset: handleReset,
     theme,
   });
+
+  if (!introDone) {
+    return <IntroSplash onDone={() => setIntroDone(true)} />;
+  }
 
   if (!fontsLoaded) {
     return (

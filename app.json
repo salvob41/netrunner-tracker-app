@@ -7,6 +7,8 @@
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
+      "image": "./src/assets/icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#07090d"
     },
     "ios": {
@@ -20,8 +22,11 @@
         "monochromeImage": "./src/assets/adaptive-icon-monochrome.png"
       },
       "package": "io.github.salvob41.trackstertaka",
-      "versionCode": 1,
-      "permissions": ["WAKE_LOCK", "VIBRATE"]
+      "versionCode": 2,
+      "permissions": [
+        "WAKE_LOCK",
+        "VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./src/assets/icon.png",
@@ -29,7 +34,8 @@
     },
     "plugins": [
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      "expo-video"
     ]
   }
 }
