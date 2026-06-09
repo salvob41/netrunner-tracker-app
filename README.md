@@ -101,7 +101,7 @@ State lives in `state.ts` with no React imports — screens map state to widgets
 - Game: [Null Signal Games](https://nullsignal.games/) (formerly NISEI / FFG)
 - Icons: [NSG Visual Assets](https://nullsignal.games/about/resources/)
 - Hand icon: [Kalashnyk on Flaticon](https://www.flaticon.com/free-icon/five_9437501)
-- App icon: Fox icon by [TODO-author-name] from [Flaticon](https://www.flaticon.com/free-animated-icon/fox_11629918)
+- App icon: [Fox animated icons created by Freepik - Flaticon](https://www.flaticon.com/free-animated-icons/fox)
 - Built with [Expo](https://expo.dev/) + [React Native](https://reactnative.dev/)
 
 ## License

@@ -15,7 +15,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#07090d"
+        "foregroundImage": "./src/assets/adaptive-icon.png",
+        "backgroundImage": "./src/assets/adaptive-icon-background.png",
+        "monochromeImage": "./src/assets/adaptive-icon-monochrome.png"
       },
       "package": "io.github.salvob41.trackstertaka",
       "versionCode": 1,
