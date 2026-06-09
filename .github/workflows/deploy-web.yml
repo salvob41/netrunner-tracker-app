@@ -32,7 +32,7 @@ jobs:
         run: npx expo export --platform web
         env:
           # Expo web export outputs to dist/
-          EXPO_PUBLIC_BASE_PATH: /netrunner-tracker-app/
+          EXPO_PUBLIC_BASE_PATH: /trackster-taka/
 
       - name: Rewrite asset URLs for GitHub Pages subpath
         run: |
@@ -40,7 +40,7 @@ jobs:
           const fs = require('fs');
           const path = require('path');
 
-          const basePath = '/netrunner-tracker-app';
+          const basePath = '/trackster-taka';
           const distDir = 'dist';
           const indexPath = path.join(distDir, 'index.html');
 

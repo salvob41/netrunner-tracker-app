@@ -1,8 +1,8 @@
-# Netrunner Game Tracker
+# Taka Trackster — Netrunner Companion
 
-Single-screen game state tracker for [Android: Netrunner](https://nullsignal.games/). Tap-first, built with React Native + Expo (TypeScript). Runs in the browser, on Android, and on iOS.
+Unofficial single-screen game state tracker for [Netrunner](https://nullsignal.games/). Tap-first, built with React Native + Expo (TypeScript). Runs in the browser, on Android, and on iOS.
 
-**[Try it in your browser →](https://salvob41.github.io/netrunner-tracker-app/)**
+**[Try it in your browser →](https://salvob41.github.io/trackster-taka/)**
 
 ## Tour
 

@@ -115,7 +115,7 @@ export function SetupScreen({ onStart, bg }: Props) {
         {/* Compact title */}
         <View style={{ alignItems: 'center' }}>
           <Text style={{ fontSize: 16, fontWeight: '700', letterSpacing: 3, color: C.text, fontFamily: 'Rajdhani_700Bold' }}>
-            NETRUNNER
+            TAKA TRACKSTER
           </Text>
         </View>
 
@@ -198,13 +198,13 @@ export function SetupScreen({ onStart, bg }: Props) {
       {/* Title block */}
       <View style={{ alignItems: 'center', marginBottom: 24 }}>
         <Text style={{ fontSize: 9, letterSpacing: 4, color: C.dim, fontFamily: 'Rajdhani_600SemiBold', marginBottom: 6 }}>
-          ANDROID
+          UNOFFICIAL
         </Text>
         <Text style={{ fontSize: 28, fontWeight: '700', letterSpacing: 3, color: C.text, fontFamily: 'Rajdhani_700Bold' }}>
-          NETRUNNER
+          TAKA TRACKSTER
         </Text>
         <Text style={{ fontSize: 11, letterSpacing: 2, color: C.dim, fontFamily: 'Rajdhani_600SemiBold' }}>
-          GAME TRACKER
+          NETRUNNER COMPANION
         </Text>
       </View>
 
