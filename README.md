@@ -1,6 +1,6 @@
-# Taka Trackster — Netrunner Companion
+# Trackster Taka — Netrunner Companion
 
-Unofficial single-screen game state tracker for [Netrunner](https://nullsignal.games/). Tap-first, built with React Native + Expo (TypeScript). Runs in the browser, on Android, and on iOS.
+Unofficial companion for the [Netrunner LCG](https://nullsignal.games/) — track credits, clicks, tags, agenda points, brain damage, bad publicity, MU, hand size, and link in a single tap-first screen. Same idea as the MTG life trackers that have circulated for years, only purpose-built for Netrunner. Built with React Native + Expo (TypeScript). Runs in the browser, on Android, and on iOS.
 
 **[Try it in your browser →](https://salvob41.github.io/trackster-taka/)**
 

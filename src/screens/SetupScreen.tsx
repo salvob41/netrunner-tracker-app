@@ -115,7 +115,7 @@ export function SetupScreen({ onStart, bg }: Props) {
         {/* Compact title */}
         <View style={{ alignItems: 'center' }}>
           <Text style={{ fontSize: 16, fontWeight: '700', letterSpacing: 3, color: C.text, fontFamily: 'Rajdhani_700Bold' }}>
-            TAKA TRACKSTER
+            TRACKSTER TAKA
           </Text>
         </View>
 
@@ -201,7 +201,7 @@ export function SetupScreen({ onStart, bg }: Props) {
           UNOFFICIAL
         </Text>
         <Text style={{ fontSize: 28, fontWeight: '700', letterSpacing: 3, color: C.text, fontFamily: 'Rajdhani_700Bold' }}>
-          TAKA TRACKSTER
+          TRACKSTER TAKA
         </Text>
         <Text style={{ fontSize: 11, letterSpacing: 2, color: C.dim, fontFamily: 'Rajdhani_600SemiBold' }}>
           NETRUNNER COMPANION
