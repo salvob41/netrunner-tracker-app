@@ -1,6 +1,6 @@
 # Trackster Taka — Netrunner
 
-Unofficial companion for the [Netrunner LCG](https://nullsignal.games/) — track credits, clicks, tags, agenda points, brain damage, bad publicity, MU, hand size, and link in a single tap-first screen. Same idea as the MTG life trackers that have circulated for years, only purpose-built for Netrunner. Built with React Native + Expo (TypeScript). Runs in the browser, on Android, and on iOS.
+Unofficial companion for the [Netrunner LCG](https://nullsignal.games/) — track credits, clicks, tags, agenda points, core damage, bad publicity, MU, hand size, and link in a single tap-first screen. Same idea as the MTG life trackers that have circulated for years, only purpose-built for Netrunner. Built with React Native + Expo (TypeScript). Runs in the browser, on Android, and on iOS.
 
 **[Try it in your browser →](https://salvob41.github.io/trackster-taka/)**
 
@@ -29,7 +29,7 @@ The full two-sided tracker. Each side shows clicks (top), a split-tap credit cou
 
 ### Solo mode — track only your side
 
-If you're playing across the table from a human opponent, pick one side at setup. The opposing score is entered manually via the `OPP` chip in the header so the agenda bar still works. Stat chips on the side rail (tags, brain damage, hand size, MU, link, bad publicity) expand on tap so the less-used counters stay out of the way.
+If you're playing across the table from a human opponent, pick one side at setup. The opposing score is entered manually via the `OPP` chip in the header so the agenda bar still works. Stat chips on the side rail (tags, core damage, hand size, MU, link, bad publicity) expand on tap so the less-used counters stay out of the way.
 
 | Solo Corp — portrait | Solo Runner — portrait |
 | --- | --- |
