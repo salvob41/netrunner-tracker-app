@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Netrunner Tracker",
+    "name": "Taka Trackster: Netrunner Tool",
     "slug": "netrunner-tracker",
     "version": "2.5.0",
     "orientation": "default",
@@ -11,13 +11,13 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.salvob41.netrunnertracker"
+      "bundleIdentifier": "io.github.salvob41.trackstertaka"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#07090d"
       },
-      "package": "com.salvob41.netrunnertracker",
+      "package": "io.github.salvob41.trackstertaka",
       "versionCode": 1,
       "permissions": ["WAKE_LOCK", "VIBRATE"]
     },
