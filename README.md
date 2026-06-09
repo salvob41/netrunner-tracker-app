@@ -102,6 +102,7 @@ State lives in `state.ts` with no React imports — screens map state to widgets
 - Icons: [NSG Visual Assets](https://nullsignal.games/about/resources/)
 - Hand icon: [Kalashnyk on Flaticon](https://www.flaticon.com/free-icon/five_9437501)
 - App icon: [Fox animated icons created by Freepik - Flaticon](https://www.flaticon.com/free-animated-icons/fox)
+- Android adaptive icon stack (foreground / background / monochrome) generated with [Icon Kitchen](https://icon.kitchen/)
 - Built with [Expo](https://expo.dev/) + [React Native](https://reactnative.dev/)
 
 ## License
