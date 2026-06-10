@@ -193,7 +193,11 @@ export function SetupScreen({ onStart, bg }: Props) {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: bg }}
-      contentContainerStyle={{ padding: 24, paddingBottom: 32 }}
+      contentContainerStyle={{
+        paddingTop: insets.top + 24,
+        paddingHorizontal: 24,
+        paddingBottom: insets.bottom + 32,
+      }}
     >
       {/* Title block */}
       <View style={{ alignItems: 'center', marginBottom: 24 }}>

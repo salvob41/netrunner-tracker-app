@@ -108,7 +108,7 @@ export function StatChip({ iconSource, value, color, onChange, chipHeight = CHIP
         <Animated.View
           pointerEvents="none"
           style={{
-            position: 'absolute', top: '100%', marginTop: 6,
+            position: 'absolute', top: '100%', right: 0, marginTop: 6,
             backgroundColor: '#0d1119',
             borderWidth: 1, borderColor: rgba(color, 0.5),
             borderRadius: 6, paddingVertical: 4, paddingHorizontal: 8,

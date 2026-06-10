@@ -107,6 +107,11 @@ export function GameScreen({ game, mode }: Props) {
   const insets = useSafeAreaInsets();
   const showCorp = mode !== 'runner';
   const showRunner = mode !== 'corp';
+  // Solo keeps full-size chips. In "both" mode the runner panel only gets half
+  // the screen, so its 5-chip column shrinks slightly to avoid overflowing
+  // behind the agenda/log bars (gentle 36 vs 40 — barely noticeable).
+  const bothMode = showCorp && showRunner;
+  const runnerChipH = bothMode ? 36 : 40;
 
   return (
     <View style={{
@@ -514,7 +519,7 @@ export function GameScreen({ game, mode }: Props) {
             <View style={{ gap: 6, alignItems: 'center', flex: 1 }}>
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold}
+                  iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
                     addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
@@ -523,7 +528,7 @@ export function GameScreen({ game, mode }: Props) {
               </View>
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple}
+                  iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
                     addLog('runner', d > 0 ? 'Core damage +1' : 'Core damage −1');
@@ -532,7 +537,7 @@ export function GameScreen({ game, mode }: Props) {
               </View>
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={HAND_ICON} value={handSize} color={runnerColor}
+                  iconSource={HAND_ICON} value={handSize} color={runnerColor} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
                     addLog('runner', d > 0 ? 'Hand size +1' : 'Hand size −1');
@@ -541,7 +546,7 @@ export function GameScreen({ game, mode }: Props) {
               </View>
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={MU_ICON} value={gs.runner.mu} color={C.mu}
+                  iconSource={MU_ICON} value={gs.runner.mu} color={C.mu} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
                     addLog('runner', d > 0 ? 'MU +1' : 'MU −1');
@@ -550,7 +555,7 @@ export function GameScreen({ game, mode }: Props) {
               </View>
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
-                  iconSource={LINK_ICON} value={gs.runner.link} color={C.link}
+                  iconSource={LINK_ICON} value={gs.runner.link} color={C.link} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
                     addLog('runner', d > 0 ? 'Link +1' : 'Link −1');
