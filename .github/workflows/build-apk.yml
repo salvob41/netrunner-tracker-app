@@ -53,7 +53,7 @@ jobs:
 
           // Make the release buildType use release signingConfig when env vars present
           c = c.replace(
-            /signingConfig signingConfigs\.debug(\s*\/\/[^\n]*)?/,
+            /signingConfig signingConfigs\.debug(\s*\/\/[^\n]*)?/g,
             "signingConfig System.getenv('SIGNING_STORE_FILE') ? signingConfigs.release : signingConfigs.debug"
           );
 
