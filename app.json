@@ -2,7 +2,7 @@
   "expo": {
     "name": "Trackster Taka - Netrunner",
     "slug": "netrunner-tracker",
-    "version": "2.6.2",
+    "version": "2.6.3",
     "orientation": "default",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -22,7 +22,7 @@
         "monochromeImage": "./src/assets/adaptive-icon-monochrome.png"
       },
       "package": "io.github.salvob41.trackstertaka",
-      "versionCode": 6,
+      "versionCode": 7,
       "permissions": [
         "WAKE_LOCK",
         "VIBRATE"
@@ -49,7 +49,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#07090d",
-          "image": "./src/assets/icon.png",
+          "image": "./src/assets/adaptive-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "dark": {
