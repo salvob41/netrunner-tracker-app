@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image } from 'react-native';
+import { Image, ImageSourcePropType } from 'react-native';
 
 interface IconProps {
   source: ReturnType<typeof require>;
@@ -10,7 +10,7 @@ interface IconProps {
 export function Icon({ source, size = 18, color = '#ffffff' }: IconProps) {
   return (
     <Image
-      source={source}
+      source={source as ImageSourcePropType}
       tintColor={color}
       style={{ width: size, height: size }}
       resizeMode="contain"

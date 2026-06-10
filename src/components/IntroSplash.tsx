@@ -1,49 +1,45 @@
 import { useEffect, useRef } from 'react';
 import { StyleSheet, Pressable, Animated } from 'react-native';
+import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 
-const FOX = require('../assets/adaptive-icon.png');
+const FOX = require('../assets/fox.webp');
 
 interface Props {
   onDone: () => void;
 }
 
 /**
- * Animated intro: the transparent fox fades and scales in over a dark
- * background, then hands off to the main app. No video (the old fox.mp4 had a
- * white background baked in), so there's nothing white to flash.
+ * Animated intro: the fox animation (transparent WebP, white background flood-
+ * filled out) plays over a dark background, then hands off to the main app.
+ * No white anywhere — the old fox.mp4 had a white background baked in.
  *
  * Cold-start handoff:
  *   1. Native splash shows the fox on a dark background (expo-splash-screen)
  *   2. RN bundle loads, App.tsx renders this component
- *   3. useEffect fires SplashScreen.hideAsync() and starts the animation
- *   4. After ~1.6s onDone() transitions to the setup screen
+ *   3. useEffect fires SplashScreen.hideAsync() and the WebP plays (~2.4s)
+ *   4. After the animation, onDone() transitions to the setup screen
  *
  * Skippable via tap.
  */
 export function IntroSplash({ onDone }: Props) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.85)).current;
 
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
 
-    Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 450, useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, friction: 6, tension: 40, useNativeDriver: true }),
-    ]).start();
+    Animated.timing(opacity, { toValue: 1, duration: 350, useNativeDriver: true }).start();
 
-    const timer = setTimeout(onDone, 1600);
+    // Animation runs ~2.4s; transition just after it completes.
+    const timer = setTimeout(onDone, 2600);
     return () => clearTimeout(timer);
-  }, [onDone, opacity, scale]);
+  }, [onDone, opacity]);
 
   return (
     <Pressable style={styles.container} onPress={onDone}>
-      <Animated.Image
-        source={FOX}
-        style={[styles.fox, { opacity, transform: [{ scale }] }]}
-        resizeMode="contain"
-      />
+      <Animated.View style={{ opacity }}>
+        <Image source={FOX} style={styles.fox} contentFit="contain" />
+      </Animated.View>
     </Pressable>
   );
 }
@@ -56,7 +52,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fox: {
-    width: 200,
-    height: 200,
+    width: 220,
+    height: 220,
   },
 });
