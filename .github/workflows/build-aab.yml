@@ -44,7 +44,7 @@ jobs:
             }`);
 
           c = c.replace(
-            /signingConfig signingConfigs\.debug(\s*\/\/[^\n]*)?/,
+            /signingConfig signingConfigs\.debug(\s*\/\/[^\n]*)?/g,
             "signingConfig System.getenv('SIGNING_STORE_FILE') ? signingConfigs.release : signingConfigs.debug"
           );
 
@@ -78,7 +78,17 @@ jobs:
         run: |
           AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -1)
           echo "Built: $AAB ($(du -h "$AAB" | cut -f1))"
-          unzip -p "$AAB" META-INF/MANIFEST.MF | head -5 || true
+          CERT=$(unzip -p "$AAB" 'META-INF/*.RSA' | keytool -printcert | grep -i Owner || true)
+          echo "Signer: $CERT"
+          if echo "$CERT" | grep -qi "Android Debug"; then
+            echo "::error::AAB is signed with the DEBUG key — release signing patch failed. Play Store will reject this."
+            exit 1
+          fi
+          if [ -z "$CERT" ]; then
+            echo "::error::Could not read AAB signer certificate — bundle may be unsigned."
+            exit 1
+          fi
+          echo "Release signature verified."
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
