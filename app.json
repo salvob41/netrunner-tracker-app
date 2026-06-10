@@ -22,7 +22,7 @@
         "monochromeImage": "./src/assets/adaptive-icon-monochrome.png"
       },
       "package": "io.github.salvob41.trackstertaka",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "WAKE_LOCK",
         "VIBRATE"
@@ -35,7 +35,16 @@
     "plugins": [
       "expo-font",
       "expo-asset",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35
+          }
+        }
+      ]
     ]
   }
 }
