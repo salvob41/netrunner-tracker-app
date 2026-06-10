@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Rect, Circle } from 'react-native-svg';
+import { View } from 'react-native';
 
 interface Props {
   size?: number;
@@ -20,21 +20,30 @@ export function DieIcon({ size = 22, color }: Props) {
   ];
   const stroke = Math.max(1, s * 0.07);
   return (
-    <Svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
-      <Rect
-        x={stroke / 2}
-        y={stroke / 2}
-        width={s - stroke}
-        height={s - stroke}
-        rx={s * 0.18}
-        ry={s * 0.18}
-        fill="transparent"
-        stroke={color}
-        strokeWidth={stroke}
-      />
+    <View
+      style={{
+        width: s,
+        height: s,
+        borderWidth: stroke,
+        borderColor: color,
+        borderRadius: s * 0.18,
+      }}
+    >
       {positions.map(([x, y], i) => (
-        <Circle key={i} cx={x} cy={y} r={pip} fill={color} />
+        <View
+          key={i}
+          style={{
+            position: 'absolute',
+            // offset by stroke so pip centers align with the inner (border-box) coords
+            left: x - pip - stroke,
+            top: y - pip - stroke,
+            width: pip * 2,
+            height: pip * 2,
+            borderRadius: pip,
+            backgroundColor: color,
+          }}
+        />
       ))}
-    </Svg>
+    </View>
   );
 }
