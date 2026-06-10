@@ -44,6 +44,18 @@
             "targetSdkVersion": 35
           }
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#07090d",
+          "image": "./src/assets/icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#07090d"
+          }
+        }
       ]
     ]
   }
