@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClickToken } from '../components/ClickToken';
@@ -107,11 +107,14 @@ export function GameScreen({ game, mode }: Props) {
   const insets = useSafeAreaInsets();
   const showCorp = mode !== 'runner';
   const showRunner = mode !== 'corp';
-  // Solo keeps full-size chips. In "both" mode the runner panel only gets half
-  // the screen, so its 5-chip column shrinks slightly to avoid overflowing
-  // behind the agenda/log bars (gentle 36 vs 40 — barely noticeable).
-  const bothMode = showCorp && showRunner;
-  const runnerChipH = bothMode ? 36 : 40;
+  // Runner has a 5-chip column. Measure the height it actually gets and size the
+  // chips to fit exactly, capped at 40 — full-size when there's room (solo),
+  // shrinking only as much as needed when both panels share one screen.
+  const RUNNER_CHIP_GAP = 6;
+  const [runnerColH, setRunnerColH] = useState(0);
+  const runnerChipH = runnerColH > 0
+    ? Math.max(24, Math.min(40, Math.floor((runnerColH - RUNNER_CHIP_GAP * 4) / 5)))
+    : 40;
 
   return (
     <View style={{
@@ -516,7 +519,10 @@ export function GameScreen({ game, mode }: Props) {
               />
             </View>
             {/* Single-column stat chips — packed tightly, top-aligned */}
-            <View style={{ gap: 6, alignItems: 'center', flex: 1 }}>
+            <View
+              onLayout={e => setRunnerColH(e.nativeEvent.layout.height)}
+              style={{ gap: RUNNER_CHIP_GAP, alignItems: 'center', flex: 1 }}
+            >
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} chipHeight={runnerChipH}
