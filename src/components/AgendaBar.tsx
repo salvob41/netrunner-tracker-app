@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { rgba } from '../theme';
+import { digits } from './DigitText';
 
 interface Props {
   score: number;
@@ -25,7 +26,7 @@ export function AgendaBar({ score, color, onChange, fillFromTop = true }: Props)
           fontFamily: 'ShareTechMono_400Regular',
           fontSize: 13, fontWeight: '700', color, lineHeight: 15, marginBottom: 3,
         }}>
-          {score}
+          {digits(score)}
         </Text>
       )}
       <Pressable
@@ -48,7 +49,7 @@ export function AgendaBar({ score, color, onChange, fillFromTop = true }: Props)
           fontFamily: 'ShareTechMono_400Regular',
           fontSize: 13, fontWeight: '700', color, lineHeight: 15, marginTop: 3,
         }}>
-          {score}
+          {digits(score)}
         </Text>
       )}
     </View>

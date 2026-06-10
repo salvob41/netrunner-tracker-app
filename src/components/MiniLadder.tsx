@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Icon } from './Icon';
 import { C, rgba } from '../theme';
+import { digits } from './DigitText';
 
 const AGENDA_ICON = require('../assets/agenda.png');
 
@@ -32,7 +33,7 @@ export function MiniLadder({
           fontFamily: 'ShareTechMono_400Regular', fontSize: 14,
           fontWeight: '700', color: corpColor,
         }}>
-          {corpScore}
+          {digits(corpScore)}
         </Text>
         <Text style={{
           fontSize: 7, letterSpacing: 1, color: rgba(corpColor, 0.5),
@@ -95,7 +96,7 @@ export function MiniLadder({
           fontFamily: 'ShareTechMono_400Regular', fontSize: 14,
           fontWeight: '700', color: runnerColor,
         }}>
-          {runnerScore}
+          {digits(runnerScore)}
         </Text>
         <Text style={{
           fontSize: 7, letterSpacing: 1, color: rgba(runnerColor, 0.5),

@@ -1,49 +1,48 @@
-import { useEffect } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { useEffect, useRef } from 'react';
+import { StyleSheet, Pressable, Animated } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 
-const FOX_VIDEO = require('../assets/fox.mp4');
+const FOX = require('../assets/adaptive-icon.png');
 
 interface Props {
   onDone: () => void;
 }
 
 /**
- * Plays the fox animation once over the native splash background,
- * then hands off to the main app.
+ * Animated intro: the transparent fox fades and scales in over a dark
+ * background, then hands off to the main app. No video (the old fox.mp4 had a
+ * white background baked in), so there's nothing white to flash.
  *
  * Cold-start handoff:
- *   1. Native splash shows fox icon (static) from app.json `splash`
+ *   1. Native splash shows the fox on a dark background (expo-splash-screen)
  *   2. RN bundle loads, App.tsx renders this component
- *   3. useEffect fires SplashScreen.hideAsync() to reveal video
- *   4. Video plays for ~2.4s
- *   5. Timeout fires onDone(), App transitions to setup screen
+ *   3. useEffect fires SplashScreen.hideAsync() and starts the animation
+ *   4. After ~1.6s onDone() transitions to the setup screen
  *
- * Skippable via tap (escape hatch for impatient users).
+ * Skippable via tap.
  */
 export function IntroSplash({ onDone }: Props) {
-  const player = useVideoPlayer(FOX_VIDEO, (p) => {
-    p.loop = false;
-    p.muted = true;
-    p.play();
-  });
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.85)).current;
 
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
 
-    // Safety timeout slightly longer than video duration (2.4s)
-    const timer = setTimeout(onDone, 2700);
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 450, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, friction: 6, tension: 40, useNativeDriver: true }),
+    ]).start();
+
+    const timer = setTimeout(onDone, 1600);
     return () => clearTimeout(timer);
-  }, [onDone]);
+  }, [onDone, opacity, scale]);
 
   return (
     <Pressable style={styles.container} onPress={onDone}>
-      <VideoView
-        player={player}
-        style={styles.video}
-        contentFit="contain"
-        nativeControls={false}
+      <Animated.Image
+        source={FOX}
+        style={[styles.fox, { opacity, transform: [{ scale }] }]}
+        resizeMode="contain"
       />
     </Pressable>
   );
@@ -56,8 +55,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  video: {
-    width: 320,
-    height: 320,
+  fox: {
+    width: 200,
+    height: 200,
   },
 });

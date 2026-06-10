@@ -3,6 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import { Faction, C, rgba } from '../theme';
 import { FactionGlyph } from './FactionGlyph';
 import { Icon } from './Icon';
+import { digits } from './DigitText';
 
 const AGENDA_ICON = require('../assets/agenda.png');
 const TAG_ICON = require('../assets/tag.png');
@@ -46,7 +47,7 @@ export function OppChip({
       <View style={{ width: 1, height: s.sepH, backgroundColor: rgba(C.dim, 0.4) }} />
       <FactionGlyph faction={oppFaction} size={s.glyph} />
       <Icon source={AGENDA_ICON} size={s.icon} color={rgba(C.gold, 0.7)} />
-      <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: s.font, fontWeight: '700', color: C.gold }}>{oppAgenda}</Text>
+      <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: s.font, fontWeight: '700', color: C.gold }}>{digits(oppAgenda)}</Text>
       <Pressable
         onPress={() => onSecondaryDelta(1)}
         onLongPress={() => onSecondaryDelta(-1)}
@@ -54,7 +55,7 @@ export function OppChip({
         style={{ flexDirection: 'row', alignItems: 'center', gap: s.innerGap }}
       >
         <Icon source={secondaryIcon} size={s.icon} color={rgba(secondaryColor, 0.7)} />
-        <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: s.font, fontWeight: '700', color: secondaryColor }}>{oppSecondary}</Text>
+        <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: s.font, fontWeight: '700', color: secondaryColor }}>{digits(oppSecondary)}</Text>
       </Pressable>
     </View>
   );

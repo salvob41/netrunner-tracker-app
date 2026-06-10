@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 import { Icon } from './Icon';
 import { rgba } from '../theme';
+import { digits } from './DigitText';
 import { useBatchedDelta } from '../hooks/useBatchedDelta';
 
 const CREDIT_ICON = require('../assets/credit.png');
@@ -80,7 +81,7 @@ export function CreditCounter({ value, color, onChange, label, flushRef }: Props
             lineHeight: 68,
             transform: [{ scale: scaleAnim }],
           }}>
-            {displayValue}
+            {digits(displayValue)}
           </Animated.Text>
         </View>
         {label && (

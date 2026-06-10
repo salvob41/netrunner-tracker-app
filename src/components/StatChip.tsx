@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
 import { Icon } from './Icon';
 import { C, rgba } from '../theme';
+import { digits } from './DigitText';
 import { useBatchedDelta } from '../hooks/useBatchedDelta';
 
 const PILL_GREEN = '#00f0a0';
@@ -88,7 +89,7 @@ export function StatChip({ iconSource, value, color, onChange, chipHeight = CHIP
           transform: [{ scale: popAnim }],
         }}>
           <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: 14, fontWeight: '800', color: '#000', lineHeight: 16 }}>
-            {displayValue}
+            {digits(displayValue)}
           </Text>
         </Animated.View>
       )}

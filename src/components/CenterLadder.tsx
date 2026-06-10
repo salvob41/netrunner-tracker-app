@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Icon } from './Icon';
 import { C, rgba } from '../theme';
+import { digits } from './DigitText';
 
 const AGENDA_ICON = require('../assets/agenda.png');
 
@@ -32,7 +33,7 @@ export function CenterLadder({
         fontFamily: 'ShareTechMono_400Regular',
         fontSize: 16, fontWeight: '700', color: corpColor, lineHeight: 18,
       }}>
-        {corpScore}
+        {digits(corpScore)}
       </Text>
       <Text style={{
         fontFamily: 'Rajdhani_700Bold', fontSize: 8, letterSpacing: 2,
@@ -103,7 +104,7 @@ export function CenterLadder({
         fontFamily: 'ShareTechMono_400Regular',
         fontSize: 16, fontWeight: '700', color: runnerColor, lineHeight: 18,
       }}>
-        {runnerScore}
+        {digits(runnerScore)}
       </Text>
     </View>
   );
