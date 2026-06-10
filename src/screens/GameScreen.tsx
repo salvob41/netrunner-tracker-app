@@ -132,12 +132,12 @@ export function GameScreen({ game, mode }: Props) {
         borderWidth: 1, borderColor: rgba(activeColor, 0.3),
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <View>
+        <View style={{ flexShrink: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Icon source={CLICK_ICON} size={16} color={activeColor} />
-            <Text style={{
+            <Text numberOfLines={1} style={{
               fontFamily: 'Rajdhani_700Bold', fontSize: 14,
-              letterSpacing: 2.5, color: activeColor,
+              letterSpacing: 2.5, color: activeColor, flexShrink: 1,
             }}>
               {gs.active === 'corp' ? 'CORP TURN' : 'RUNNER TURN'}
             </Text>
@@ -149,7 +149,7 @@ export function GameScreen({ game, mode }: Props) {
             ROUND {gs.round}
           </Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', flexShrink: 0 }}>
           {mode === 'corp' && (
             <OppChip
               oppSide="runner"
@@ -159,7 +159,7 @@ export function GameScreen({ game, mode }: Props) {
               oppSecondary={gs.runner.tags}
               onSecondaryDelta={d => {
                 update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
-                addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
+                addLog('runner', d > 0 ? `Tag +${d}` : `Tag −${Math.abs(d)}`);
               }}
             />
           )}
@@ -172,7 +172,7 @@ export function GameScreen({ game, mode }: Props) {
               oppSecondary={gs.corp.badPub}
               onSecondaryDelta={d => {
                 update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
-                addLog('corp', d > 0 ? 'Bad pub +1' : 'Bad pub −1');
+                addLog('corp', d > 0 ? `Bad pub +${d}` : `Bad pub −${Math.abs(d)}`);
               }}
             />
           )}
@@ -190,7 +190,7 @@ export function GameScreen({ game, mode }: Props) {
           <Pressable
             onPressIn={handleReset}
             style={{
-              padding: 6, paddingHorizontal: 10, borderRadius: 6,
+              padding: 6, paddingHorizontal: 8, borderRadius: 6,
               borderWidth: 1, borderColor: rgba(C.red, 0.2),
             }}
           >
@@ -312,7 +312,7 @@ export function GameScreen({ game, mode }: Props) {
                 color={C.badpub}
                 onChange={d => {
                   update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
-                  addLog('corp', d > 0 ? 'Bad pub +1' : 'Bad pub −1');
+                  addLog('corp', d > 0 ? `Bad pub +${d}` : `Bad pub −${Math.abs(d)}`);
                 }}
               />
             </View>
@@ -355,7 +355,7 @@ export function GameScreen({ game, mode }: Props) {
                 ...s,
                 corp: { ...s.corp, agenda: clamp(s.corp.agenda + d, -99, 99) },
               }));
-              addLog('corp', d > 0 ? 'Scored agenda +1' : 'Agenda −1');
+              addLog('corp', d > 0 ? `Scored agenda +${d}` : `Agenda −${Math.abs(d)}`);
             }}
           />
         )}
@@ -407,14 +407,14 @@ export function GameScreen({ game, mode }: Props) {
               ...s,
               corp: { ...s.corp, agenda: clamp(s.corp.agenda + d, -99, 99) },
             }));
-            addLog('corp', d > 0 ? 'Scored agenda +1' : 'Agenda −1');
+            addLog('corp', d > 0 ? `Scored agenda +${d}` : `Agenda −${Math.abs(d)}`);
           }}
           onRunnerChange={d => {
             update(s => ({
               ...s,
               runner: { ...s.runner, agenda: clamp(s.runner.agenda + d, -99, 99) },
             }));
-            addLog('runner', d > 0 ? 'Stole agenda +1' : 'Agenda −1');
+            addLog('runner', d > 0 ? `Stole agenda +${d}` : `Agenda −${Math.abs(d)}`);
           }}
         />
       )}
@@ -528,7 +528,7 @@ export function GameScreen({ game, mode }: Props) {
                   iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
-                    addLog('runner', d > 0 ? 'Tag +1' : 'Tag −1');
+                    addLog('runner', d > 0 ? `Tag +${d}` : `Tag −${Math.abs(d)}`);
                   }}
                 />
               </View>
@@ -537,7 +537,7 @@ export function GameScreen({ game, mode }: Props) {
                   iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
-                    addLog('runner', d > 0 ? 'Core damage +1' : 'Core damage −1');
+                    addLog('runner', d > 0 ? `Core damage +${d}` : `Core damage −${Math.abs(d)}`);
                   }}
                 />
               </View>
@@ -546,7 +546,7 @@ export function GameScreen({ game, mode }: Props) {
                   iconSource={HAND_ICON} value={handSize} color={runnerColor} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
-                    addLog('runner', d > 0 ? 'Hand size +1' : 'Hand size −1');
+                    addLog('runner', d > 0 ? `Hand size +${d}` : `Hand size −${Math.abs(d)}`);
                   }}
                 />
               </View>
@@ -555,7 +555,7 @@ export function GameScreen({ game, mode }: Props) {
                   iconSource={MU_ICON} value={gs.runner.mu} color={C.mu} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
-                    addLog('runner', d > 0 ? 'MU +1' : 'MU −1');
+                    addLog('runner', d > 0 ? `MU +${d}` : `MU −${Math.abs(d)}`);
                   }}
                 />
               </View>
@@ -564,7 +564,7 @@ export function GameScreen({ game, mode }: Props) {
                   iconSource={LINK_ICON} value={gs.runner.link} color={C.link} chipHeight={runnerChipH}
                   onChange={d => {
                     update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
-                    addLog('runner', d > 0 ? 'Link +1' : 'Link −1');
+                    addLog('runner', d > 0 ? `Link +${d}` : `Link −${Math.abs(d)}`);
                   }}
                 />
               </View>
@@ -608,7 +608,7 @@ export function GameScreen({ game, mode }: Props) {
                 ...s,
                 runner: { ...s.runner, agenda: clamp(s.runner.agenda + d, -99, 99) },
               }));
-              addLog('runner', d > 0 ? 'Stole agenda +1' : 'Agenda −1');
+              addLog('runner', d > 0 ? `Stole agenda +${d}` : `Agenda −${Math.abs(d)}`);
             }}
           />
         )}
