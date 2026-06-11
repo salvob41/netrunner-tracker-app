@@ -6,11 +6,6 @@
     "orientation": "default",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./src/assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#07090d"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "io.github.salvob41.trackstertaka"
@@ -40,8 +35,6 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
             "enableProguardInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true
           }

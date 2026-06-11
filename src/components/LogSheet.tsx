@@ -54,7 +54,7 @@ export function LogSheet({ log, onClose }: Props) {
   };
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFillObject, {
+    <Animated.View style={[StyleSheet.absoluteFill, {
       backgroundColor: 'rgba(7,9,13,0.85)',
       opacity,
       justifyContent: 'flex-end',
@@ -62,7 +62,7 @@ export function LogSheet({ log, onClose }: Props) {
       elevation: 50,
     }]}>
       {/* Backdrop tap to dismiss */}
-      <Pressable style={StyleSheet.absoluteFillObject} onPress={close} />
+      <Pressable style={StyleSheet.absoluteFill} onPress={close} />
       <Animated.View style={{
         backgroundColor: '#0d1119',
         borderRadius: 16, borderBottomLeftRadius: 0, borderBottomRightRadius: 0,

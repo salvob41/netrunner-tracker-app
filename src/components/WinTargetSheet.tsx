@@ -37,12 +37,12 @@ export function WinTargetSheet({ value, onSet, onClose }: Props) {
     setTarget(n => Math.max(MIN_WIN_TARGET, Math.min(MAX_WIN_TARGET, n + d)));
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFillObject, {
+    <Animated.View style={[StyleSheet.absoluteFill, {
       backgroundColor: 'rgba(7,9,13,0.85)',
       opacity, justifyContent: 'center', alignItems: 'center',
       padding: 20, zIndex: 60, elevation: 60,
     }]}>
-      <Pressable style={StyleSheet.absoluteFillObject} onPress={() => close(false)} />
+      <Pressable style={StyleSheet.absoluteFill} onPress={() => close(false)} />
       <Animated.View style={{
         width: '100%', maxWidth: 340,
         backgroundColor: '#0d1119',

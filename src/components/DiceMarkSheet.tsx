@@ -70,7 +70,7 @@ export function DiceMarkSheet({ onRollDie, onRollMark, onClose }: Props) {
   };
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFillObject, {
+    <Animated.View style={[StyleSheet.absoluteFill, {
       backgroundColor: 'rgba(7,9,13,0.85)',
       opacity,
       justifyContent: 'center',
@@ -79,7 +79,7 @@ export function DiceMarkSheet({ onRollDie, onRollMark, onClose }: Props) {
       zIndex: 60,
       elevation: 60,
     }]}>
-      <Pressable style={StyleSheet.absoluteFillObject} onPress={close} />
+      <Pressable style={StyleSheet.absoluteFill} onPress={close} />
       <Animated.View style={{
         width: '100%',
         maxWidth: 360,

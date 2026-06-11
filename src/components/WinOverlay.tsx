@@ -56,7 +56,7 @@ export function WinOverlay({ winner, corpFaction, runnerFaction, onReset, onKeep
   }
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFillObject, {
+    <Animated.View style={[StyleSheet.absoluteFill, {
       backgroundColor: 'rgba(7,9,13,0.92)',
       alignItems: 'center', justifyContent: 'center',
       opacity, zIndex: 100,

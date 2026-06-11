@@ -2,8 +2,8 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] }
+    // TS6 + the SDK 56 base config no longer pick up jest globals implicitly
+    "types": ["jest"]
   },
   "include": ["src", "index.js", "babel.config.js"]
 }
