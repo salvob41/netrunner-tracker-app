@@ -1,6 +1,8 @@
 name: Build Android AAB (Play Store)
 
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
 
 jobs:
