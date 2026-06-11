@@ -4,6 +4,7 @@ import { Faction, C, rgba } from '../theme';
 import { FactionGlyph } from './FactionGlyph';
 import { Icon } from './Icon';
 import { digits } from './DigitText';
+import { useBatchedDelta } from '../hooks/useBatchedDelta';
 
 const AGENDA_ICON = require('../assets/agenda.png');
 const TAG_ICON = require('../assets/tag.png');
@@ -36,6 +37,11 @@ export function OppChip({
   const secondaryIcon = oppIsCorp ? BAD_PUB_ICON : TAG_ICON;
   const secondaryColor = oppIsCorp ? C.badpub : C.gold;
 
+  // Batch rapid taps so a burst commits + logs once (like the credit token),
+  // while the displayed count updates optimistically per tap.
+  const { pending, bump } = useBatchedDelta(onSecondaryDelta);
+  const displaySecondary = Math.max(0, oppSecondary + pending);
+
   return (
     <View style={{
       flexDirection: 'row', alignItems: 'center', gap: s.gap,
@@ -49,13 +55,13 @@ export function OppChip({
       <Icon source={AGENDA_ICON} size={s.icon} color={rgba(C.gold, 0.7)} />
       <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: s.font, fontWeight: '700', color: C.gold }}>{digits(oppAgenda)}</Text>
       <Pressable
-        onPress={() => onSecondaryDelta(1)}
-        onLongPress={() => onSecondaryDelta(-1)}
+        onPress={() => bump(1)}
+        onLongPress={() => bump(-1)}
         delayLongPress={400}
         style={{ flexDirection: 'row', alignItems: 'center', gap: s.innerGap }}
       >
         <Icon source={secondaryIcon} size={s.icon} color={rgba(secondaryColor, 0.7)} />
-        <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: s.font, fontWeight: '700', color: secondaryColor }}>{digits(oppSecondary)}</Text>
+        <Text style={{ fontFamily: 'ShareTechMono_400Regular', fontSize: s.font, fontWeight: '700', color: secondaryColor }}>{digits(displaySecondary)}</Text>
       </Pressable>
     </View>
   );

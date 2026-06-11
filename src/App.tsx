@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, ActivityIndicator, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ActivityIndicator, useWindowDimensions, BackHandler, Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
@@ -62,6 +62,39 @@ export default function App() {
     theme,
   });
 
+  // Intercept the Android hardware back button so it never silently kills the
+  // app. On the game screen a back press offers to return to setup or quit; on
+  // the setup screen it just confirms the quit.
+  useEffect(() => {
+    const onBack = () => {
+      if (screen === 'game') {
+        Alert.alert(
+          'Leave game?',
+          'Your current game will be lost.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Back to Setup', onPress: handleReset },
+            { text: 'Quit', style: 'destructive', onPress: () => BackHandler.exitApp() },
+          ],
+          { cancelable: true },
+        );
+      } else {
+        Alert.alert(
+          'Quit Trackster Taka?',
+          '',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Quit', style: 'destructive', onPress: () => BackHandler.exitApp() },
+          ],
+          { cancelable: true },
+        );
+      }
+      return true; // prevent the default exit
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, [screen]);
+
   if (!introDone) {
     return <IntroSplash onDone={() => setIntroDone(true)} />;
   }
@@ -78,6 +111,11 @@ export default function App() {
     setCorpFaction(corp);
     setRunnerFaction(runner);
     setMode(m);
+    // Flip the corp panel only in two-player (BOTH) mode, where players sit
+    // face-to-face. In solo CORP/RUNNER mode one person faces the screen
+    // normally, so corp must not be upside down. (Manual ⇅ toggle still works.)
+    game.setCorpFlipped(m === 'both');
+    game.setRunnerFlipped(false);
     setScreen('game');
   };
 

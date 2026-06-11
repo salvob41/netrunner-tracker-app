@@ -11,6 +11,7 @@ import { FactionGlyph } from '../components/FactionGlyph';
 import { Icon } from '../components/Icon';
 import { OppChip } from '../components/OppChip';
 import { DiceMarkSheet } from '../components/DiceMarkSheet';
+import { WinTargetSheet } from '../components/WinTargetSheet';
 import { MarkChip } from '../components/MarkChip';
 import { DieIcon } from '../components/DieIcon';
 import { C, PlayMode, rgba } from '../theme';
@@ -91,14 +92,15 @@ function ExtraClickBtn({
 
 export function GameScreenLandscape({ game, mode }: Props) {
   const {
-    gs, update, addLog,
+    gs, update, addLog, adjustStat,
     showLog, setShowLog,
     showDice, setShowDice,
+    showWinTarget, setShowWinTarget,
     corpFlipped, setCorpFlipped,
     runnerFlipped, setRunnerFlipped,
     corpCreditFlush, runnerCreditFlush,
-    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset,
-    rollDie, rollMark, setMark, clearMark,
+    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset, handleKeepPlaying,
+    rollDie, rollMark, setMark, clearMark, setWinTarget,
     corpColor, runnerColor, activeColor, handSize,
     corpFaction, runnerFaction, onReset, theme,
   } = game;
@@ -148,10 +150,7 @@ export function GameScreenLandscape({ game, mode }: Props) {
               oppColor={runnerColor}
               oppAgenda={gs.runner.agenda}
               oppSecondary={gs.runner.tags}
-              onSecondaryDelta={d => {
-                update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
-                addLog('runner', d > 0 ? `Tag +${d}` : `Tag −${Math.abs(d)}`);
-              }}
+              onSecondaryDelta={d => adjustStat('runner', 'tags', d, 'Tag', 'Tag')}
             />
           )}
           {mode === 'runner' && (
@@ -162,10 +161,7 @@ export function GameScreenLandscape({ game, mode }: Props) {
               oppColor={corpColor}
               oppAgenda={gs.corp.agenda}
               oppSecondary={gs.corp.badPub}
-              onSecondaryDelta={d => {
-                update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
-                addLog('corp', d > 0 ? `Bad pub +${d}` : `Bad pub −${Math.abs(d)}`);
-              }}
+              onSecondaryDelta={d => adjustStat('corp', 'badPub', d, 'Bad pub', 'Bad pub')}
             />
           )}
           <Pressable
@@ -332,10 +328,7 @@ export function GameScreenLandscape({ game, mode }: Props) {
                 iconSource={BAD_PUB_ICON}
                 value={gs.corp.badPub}
                 color={C.badpub}
-                onChange={d => {
-                  update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
-                  addLog('corp', d > 0 ? `Bad pub +${d}` : `Bad pub −${Math.abs(d)}`);
-                }}
+                onChange={d => adjustStat('corp', 'badPub', d, 'Bad pub', 'Bad pub')}
               />
             </View>
           </View>
@@ -358,20 +351,10 @@ export function GameScreenLandscape({ game, mode }: Props) {
           runnerScore={gs.runner.agenda}
           corpColor={corpColor}
           runnerColor={runnerColor}
-          onCorpChange={d => {
-            update(s => ({
-              ...s,
-              corp: { ...s.corp, agenda: clamp(s.corp.agenda + d, -99, 99) },
-            }));
-            addLog('corp', d > 0 ? `Scored agenda +${d}` : `Agenda −${Math.abs(d)}`);
-          }}
-          onRunnerChange={d => {
-            update(s => ({
-              ...s,
-              runner: { ...s.runner, agenda: clamp(s.runner.agenda + d, -99, 99) },
-            }));
-            addLog('runner', d > 0 ? `Stole agenda +${d}` : `Agenda −${Math.abs(d)}`);
-          }}
+          max={gs.winTarget}
+          onOpenTarget={() => setShowWinTarget(true)}
+          onCorpChange={d => adjustStat('corp', 'agenda', d, 'Scored agenda', 'Agenda', -99, 99)}
+          onRunnerChange={d => adjustStat('runner', 'agenda', d, 'Stole agenda', 'Agenda', -99, 99)}
         />
 
         {/* Runner panel */}
@@ -486,46 +469,40 @@ export function GameScreenLandscape({ game, mode }: Props) {
             <View>
               <StatChip
                 iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold}
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
-                  addLog('runner', d > 0 ? `Tag +${d}` : `Tag −${Math.abs(d)}`);
-                }}
+                onChange={d => adjustStat('runner', 'tags', d, 'Tag', 'Tag')}
               />
             </View>
             <View>
               <StatChip
                 iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple}
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
-                  addLog('runner', d > 0 ? `Core damage +${d}` : `Core damage −${Math.abs(d)}`);
-                }}
+                onChange={d => adjustStat('runner', 'brain', d, 'Core damage', 'Core damage')}
               />
             </View>
             <View>
               <StatChip
                 iconSource={HAND_ICON} value={handSize} color={runnerColor}
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
-                  addLog('runner', d > 0 ? `Hand size +${d}` : `Hand size −${Math.abs(d)}`);
-                }}
+                onChange={d => update(s => {
+                  const nextBonus = clamp(s.runner.handBonus + d, -5, 10);
+                  const hand = Math.max(0, 5 - s.runner.brain + nextBonus);
+                  const verb = d > 0 ? `Hand size +${d}` : `Hand size −${Math.abs(d)}`;
+                  return {
+                    ...s,
+                    runner: { ...s.runner, handBonus: nextBonus },
+                    log: [...s.log, { round: s.round, player: 'runner', message: `${verb} → ${hand}` }],
+                  };
+                })}
               />
             </View>
             <View>
               <StatChip
                 iconSource={MU_ICON} value={gs.runner.mu} color={C.mu}
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
-                  addLog('runner', d > 0 ? `MU +${d}` : `MU −${Math.abs(d)}`);
-                }}
+                onChange={d => adjustStat('runner', 'mu', d, 'MU', 'MU', 0, 12)}
               />
             </View>
             <View>
               <StatChip
                 iconSource={LINK_ICON} value={gs.runner.link} color={C.link}
-                onChange={d => {
-                  update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
-                  addLog('runner', d > 0 ? `Link +${d}` : `Link −${Math.abs(d)}`);
-                }}
+                onChange={d => adjustStat('runner', 'link', d, 'Link', 'Link')}
               />
             </View>
           </View>
@@ -575,12 +552,20 @@ export function GameScreenLandscape({ game, mode }: Props) {
           onClose={() => setShowDice(false)}
         />
       )}
+      {showWinTarget && (
+        <WinTargetSheet
+          value={gs.winTarget}
+          onSet={setWinTarget}
+          onClose={() => setShowWinTarget(false)}
+        />
+      )}
       {gs.winner && (
         <WinOverlay
           winner={gs.winner}
           corpFaction={corpFaction}
           runnerFaction={runnerFaction}
           onReset={handleNewGame}
+          onKeepPlaying={handleKeepPlaying}
         />
       )}
     </View>

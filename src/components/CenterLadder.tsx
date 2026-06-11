@@ -3,6 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import { Icon } from './Icon';
 import { C, rgba } from '../theme';
 import { digits } from './DigitText';
+import { useBatchedDelta } from '../hooks/useBatchedDelta';
 
 const AGENDA_ICON = require('../assets/agenda.png');
 
@@ -13,18 +14,26 @@ interface Props {
   runnerColor: string;
   onCorpChange: (delta: number) => void;
   onRunnerChange: (delta: number) => void;
+  /** Agenda points needed to win = number of ladder segments. */
+  max?: number;
+  /** Tap the center agenda symbol to open the win-target picker. */
+  onOpenTarget?: () => void;
 }
-
-const MAX = 7;
 
 export function CenterLadder({
   corpScore, runnerScore, corpColor, runnerColor,
-  onCorpChange, onRunnerChange,
+  onCorpChange, onRunnerChange, max = 7, onOpenTarget,
 }: Props) {
+  const MAX = max;
+  // Batch rapid taps per side so a burst commits + logs once; scores update live.
+  const corp = useBatchedDelta(onCorpChange);
+  const runner = useBatchedDelta(onRunnerChange);
+  const dispCorp = corpScore + corp.pending;
+  const dispRunner = runnerScore + runner.pending;
   // Corp segments: fill from top (index 0 = top)
-  const corpSegments = Array.from({ length: MAX }, (_, i) => i < corpScore);
+  const corpSegments = Array.from({ length: MAX }, (_, i) => i < dispCorp);
   // Runner segments: fill from bottom (index 0 = top, so fill from MAX-1)
-  const runnerSegments = Array.from({ length: MAX }, (_, i) => (MAX - 1 - i) < runnerScore);
+  const runnerSegments = Array.from({ length: MAX }, (_, i) => (MAX - 1 - i) < dispRunner);
 
   return (
     <View style={{ width: 56, alignItems: 'center', flexShrink: 0, paddingVertical: 2 }}>
@@ -33,7 +42,7 @@ export function CenterLadder({
         fontFamily: 'ShareTechMono_400Regular',
         fontSize: 16, fontWeight: '700', color: corpColor, lineHeight: 18,
       }}>
-        {digits(corpScore)}
+        {digits(dispCorp)}
       </Text>
       <Text style={{
         fontFamily: 'Rajdhani_700Bold', fontSize: 8, letterSpacing: 2,
@@ -44,8 +53,8 @@ export function CenterLadder({
 
       {/* Corp segments — tap +1, long press -1 */}
       <Pressable
-        onPress={() => onCorpChange(1)}
-        onLongPress={() => onCorpChange(-1)}
+        onPress={() => corp.bump(1)}
+        onLongPress={() => corp.bump(-1)}
         delayLongPress={400}
         style={{ gap: 3, width: '100%', flex: 1, justifyContent: 'center' }}
       >
@@ -62,21 +71,38 @@ export function CenterLadder({
         ))}
       </Pressable>
 
-      {/* Center agenda icon */}
-      <View style={{ paddingVertical: 5, alignItems: 'center' }}>
-        <Icon source={AGENDA_ICON} size={20} color={C.gold} />
+      {/* Center agenda icon — tap to open the agenda-to-win picker.
+          zIndex keeps it above the flanking segment Pressables so taps land here
+          (on web the adjacent flex Pressables can otherwise swallow the tap). */}
+      <Pressable
+        onPress={() => onOpenTarget?.()}
+        style={{
+          // Full width so the button matches the ladder segments' column width.
+          width: '100%', paddingVertical: 5, marginVertical: 2, alignItems: 'center',
+          borderRadius: 8, borderWidth: 1, borderColor: rgba(C.gold, 0.35),
+          backgroundColor: rgba(C.gold, 0.08),
+          zIndex: 10, elevation: 10,
+        }}
+      >
+        <Icon source={AGENDA_ICON} size={18} color={C.gold} />
         <Text style={{
-          fontSize: 6, letterSpacing: 0.5, marginTop: 1,
-          color: rgba(C.gold, 0.5), fontFamily: 'Rajdhani_700Bold',
+          fontSize: 11, letterSpacing: 0.5, marginTop: 1,
+          color: C.gold, fontFamily: 'Rajdhani_700Bold',
         }}>
-          7 WIN
+          {MAX}
         </Text>
-      </View>
+        <Text style={{
+          fontSize: 6, letterSpacing: 0.5,
+          color: rgba(C.gold, 0.55), fontFamily: 'Rajdhani_700Bold',
+        }}>
+          TO WIN
+        </Text>
+      </Pressable>
 
       {/* Runner segments — tap +1, long press -1 */}
       <Pressable
-        onPress={() => onRunnerChange(1)}
-        onLongPress={() => onRunnerChange(-1)}
+        onPress={() => runner.bump(1)}
+        onLongPress={() => runner.bump(-1)}
         delayLongPress={400}
         style={{ gap: 3, width: '100%', flex: 1, justifyContent: 'center' }}
       >
@@ -104,7 +130,7 @@ export function CenterLadder({
         fontFamily: 'ShareTechMono_400Regular',
         fontSize: 16, fontWeight: '700', color: runnerColor, lineHeight: 18,
       }}>
-        {digits(runnerScore)}
+        {digits(dispRunner)}
       </Text>
     </View>
   );

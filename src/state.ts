@@ -33,8 +33,17 @@ export interface GameState {
   runner: RunnerState;
   log: LogEntry[];
   winner: 'corp' | 'runner' | null;
+  /** True once the player dismissed a win via "Keep Playing"; suppresses the
+   *  auto-win until both agendas drop back below the win target (then re-arms). */
+  winDismissed: boolean;
+  /** Agenda points required to win (default 7; adjustable from the center ladder). */
+  winTarget: number;
   mark: Mark | null;
 }
+
+export const MIN_WIN_TARGET = 1;
+export const MAX_WIN_TARGET = 10;
+export const DEFAULT_WIN_TARGET = 7;
 
 export function makeInitialState(): GameState {
   return {
@@ -44,6 +53,8 @@ export function makeInitialState(): GameState {
     runner: { clicks:4, extra:0, credits:5, agenda:0, tags:0, brain:0, handBonus:0, mu:4, link:0 },
     log: [{ round:0, player:'game', message:'Game started' }],
     winner: null,
+    winDismissed: false,
+    winTarget: DEFAULT_WIN_TARGET,
     mark: null,
   };
 }

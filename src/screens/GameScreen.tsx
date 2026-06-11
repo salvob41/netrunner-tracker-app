@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClickToken } from '../components/ClickToken';
 import { CreditCounter } from '../components/CreditCounter';
 import { StatChip } from '../components/StatChip';
-import { AgendaBar } from '../components/AgendaBar';
+import { AgendaBar, AGENDA_BAR_WIDTH } from '../components/AgendaBar';
 import { MiniLadder } from '../components/MiniLadder';
 import { LogSheet } from '../components/LogSheet';
 import { WinOverlay } from '../components/WinOverlay';
@@ -12,6 +12,7 @@ import { FactionGlyph } from '../components/FactionGlyph';
 import { Icon } from '../components/Icon';
 import { OppChip } from '../components/OppChip';
 import { DiceMarkSheet } from '../components/DiceMarkSheet';
+import { WinTargetSheet } from '../components/WinTargetSheet';
 import { MarkChip } from '../components/MarkChip';
 import { DieIcon } from '../components/DieIcon';
 import { C, PlayMode, rgba } from '../theme';
@@ -92,14 +93,15 @@ function ExtraClickBtn({
 
 export function GameScreen({ game, mode }: Props) {
   const {
-    gs, update, addLog,
+    gs, update, addLog, adjustStat,
     showLog, setShowLog,
     showDice, setShowDice,
+    showWinTarget, setShowWinTarget,
     corpFlipped, setCorpFlipped,
     runnerFlipped, setRunnerFlipped,
     corpCreditFlush, runnerCreditFlush,
-    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset,
-    rollDie, rollMark, setMark, clearMark,
+    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset, handleKeepPlaying,
+    rollDie, rollMark, setMark, clearMark, setWinTarget,
     corpColor, runnerColor, activeColor, handSize,
     corpFaction, runnerFaction, onReset, theme,
   } = game;
@@ -157,10 +159,7 @@ export function GameScreen({ game, mode }: Props) {
               oppColor={runnerColor}
               oppAgenda={gs.runner.agenda}
               oppSecondary={gs.runner.tags}
-              onSecondaryDelta={d => {
-                update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
-                addLog('runner', d > 0 ? `Tag +${d}` : `Tag −${Math.abs(d)}`);
-              }}
+              onSecondaryDelta={d => adjustStat('runner', 'tags', d, 'Tag', 'Tag')}
             />
           )}
           {mode === 'runner' && (
@@ -170,10 +169,7 @@ export function GameScreen({ game, mode }: Props) {
               oppColor={corpColor}
               oppAgenda={gs.corp.agenda}
               oppSecondary={gs.corp.badPub}
-              onSecondaryDelta={d => {
-                update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
-                addLog('corp', d > 0 ? `Bad pub +${d}` : `Bad pub −${Math.abs(d)}`);
-              }}
+              onSecondaryDelta={d => adjustStat('corp', 'badPub', d, 'Bad pub', 'Bad pub')}
             />
           )}
           <Pressable
@@ -310,10 +306,7 @@ export function GameScreen({ game, mode }: Props) {
                 iconSource={BAD_PUB_ICON}
                 value={gs.corp.badPub}
                 color={C.badpub}
-                onChange={d => {
-                  update(s => ({ ...s, corp: { ...s.corp, badPub: clamp(s.corp.badPub + d, 0, 99) } }));
-                  addLog('corp', d > 0 ? `Bad pub +${d}` : `Bad pub −${Math.abs(d)}`);
-                }}
+                onChange={d => adjustStat('corp', 'badPub', d, 'Bad pub', 'Bad pub')}
               />
             </View>
           </View>
@@ -350,13 +343,8 @@ export function GameScreen({ game, mode }: Props) {
             score={gs.corp.agenda}
             color={corpColor}
             fillFromTop={true}
-            onChange={d => {
-              update(s => ({
-                ...s,
-                corp: { ...s.corp, agenda: clamp(s.corp.agenda + d, -99, 99) },
-              }));
-              addLog('corp', d > 0 ? `Scored agenda +${d}` : `Agenda −${Math.abs(d)}`);
-            }}
+            max={gs.winTarget}
+            onChange={d => adjustStat('corp', 'agenda', d, 'Scored agenda', 'Agenda', -99, 99)}
           />
         )}
       </View>}
@@ -381,17 +369,31 @@ export function GameScreen({ game, mode }: Props) {
             END {gs.active === 'corp' ? 'CORP' : 'RUNNER'} TURN
           </Text>
         </Pressable>
-        {/* Win condition reminder — width matches agenda bars (both mode only) */}
+        {/* Agenda-to-win control — sits in the middle of the tug of war (between
+            the corp and runner agenda bars); tap to pick the target. Both mode only. */}
         {mode === 'both' && (
-          <View style={{ width: 28, alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <Pressable
+            onPress={() => setShowWinTarget(true)}
+            style={{
+              width: AGENDA_BAR_WIDTH, alignItems: 'center', justifyContent: 'center', gap: 0,
+              borderRadius: 7, borderWidth: 1, borderColor: rgba(C.gold, 0.35),
+              backgroundColor: rgba(C.gold, 0.08), paddingVertical: 5,
+            }}
+          >
             <Icon source={AGENDA_ICON} size={16} color={C.gold} />
+            <Text style={{
+              fontSize: 14, lineHeight: 16, marginTop: 1,
+              color: C.gold, fontFamily: 'ShareTechMono_400Regular',
+            }}>
+              {gs.winTarget}
+            </Text>
             <Text style={{
               fontSize: 6, letterSpacing: 0.5,
               color: rgba(C.gold, 0.55), fontFamily: 'Rajdhani_700Bold',
             }}>
-              7WIN
+              TO WIN
             </Text>
-          </View>
+          </Pressable>
         )}
       </View>
 
@@ -402,20 +404,10 @@ export function GameScreen({ game, mode }: Props) {
           runnerScore={gs.runner.agenda}
           corpColor={corpColor}
           runnerColor={runnerColor}
-          onCorpChange={d => {
-            update(s => ({
-              ...s,
-              corp: { ...s.corp, agenda: clamp(s.corp.agenda + d, -99, 99) },
-            }));
-            addLog('corp', d > 0 ? `Scored agenda +${d}` : `Agenda −${Math.abs(d)}`);
-          }}
-          onRunnerChange={d => {
-            update(s => ({
-              ...s,
-              runner: { ...s.runner, agenda: clamp(s.runner.agenda + d, -99, 99) },
-            }));
-            addLog('runner', d > 0 ? `Stole agenda +${d}` : `Agenda −${Math.abs(d)}`);
-          }}
+          max={gs.winTarget}
+          onOpenTarget={() => setShowWinTarget(true)}
+          onCorpChange={d => adjustStat('corp', 'agenda', d, 'Scored agenda', 'Agenda', -99, 99)}
+          onRunnerChange={d => adjustStat('runner', 'agenda', d, 'Stole agenda', 'Agenda', -99, 99)}
         />
       )}
 
@@ -526,46 +518,40 @@ export function GameScreen({ game, mode }: Props) {
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={TAG_ICON} value={gs.runner.tags} color={C.gold} chipHeight={runnerChipH}
-                  onChange={d => {
-                    update(s => ({ ...s, runner: { ...s.runner, tags: clamp(s.runner.tags + d, 0, 99) } }));
-                    addLog('runner', d > 0 ? `Tag +${d}` : `Tag −${Math.abs(d)}`);
-                  }}
+                  onChange={d => adjustStat('runner', 'tags', d, 'Tag', 'Tag')}
                 />
               </View>
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={BRAIN_ICON} value={gs.runner.brain} color={C.purple} chipHeight={runnerChipH}
-                  onChange={d => {
-                    update(s => ({ ...s, runner: { ...s.runner, brain: clamp(s.runner.brain + d, 0, 99) } }));
-                    addLog('runner', d > 0 ? `Core damage +${d}` : `Core damage −${Math.abs(d)}`);
-                  }}
+                  onChange={d => adjustStat('runner', 'brain', d, 'Core damage', 'Core damage')}
                 />
               </View>
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={HAND_ICON} value={handSize} color={runnerColor} chipHeight={runnerChipH}
-                  onChange={d => {
-                    update(s => ({ ...s, runner: { ...s.runner, handBonus: clamp(s.runner.handBonus + d, -5, 10) } }));
-                    addLog('runner', d > 0 ? `Hand size +${d}` : `Hand size −${Math.abs(d)}`);
-                  }}
+                  onChange={d => update(s => {
+                    const nextBonus = clamp(s.runner.handBonus + d, -5, 10);
+                    const hand = Math.max(0, 5 - s.runner.brain + nextBonus);
+                    const verb = d > 0 ? `Hand size +${d}` : `Hand size −${Math.abs(d)}`;
+                    return {
+                      ...s,
+                      runner: { ...s.runner, handBonus: nextBonus },
+                      log: [...s.log, { round: s.round, player: 'runner', message: `${verb} → ${hand}` }],
+                    };
+                  })}
                 />
               </View>
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={MU_ICON} value={gs.runner.mu} color={C.mu} chipHeight={runnerChipH}
-                  onChange={d => {
-                    update(s => ({ ...s, runner: { ...s.runner, mu: clamp(s.runner.mu + d, 0, 12) } }));
-                    addLog('runner', d > 0 ? `MU +${d}` : `MU −${Math.abs(d)}`);
-                  }}
+                  onChange={d => adjustStat('runner', 'mu', d, 'MU', 'MU', 0, 12)}
                 />
               </View>
               <View style={{ transform: runnerFlipped ? [{ rotate: '180deg' }] : [] }}>
                 <StatChip
                   iconSource={LINK_ICON} value={gs.runner.link} color={C.link} chipHeight={runnerChipH}
-                  onChange={d => {
-                    update(s => ({ ...s, runner: { ...s.runner, link: clamp(s.runner.link + d, 0, 99) } }));
-                    addLog('runner', d > 0 ? `Link +${d}` : `Link −${Math.abs(d)}`);
-                  }}
+                  onChange={d => adjustStat('runner', 'link', d, 'Link', 'Link')}
                 />
               </View>
             </View>
@@ -603,13 +589,8 @@ export function GameScreen({ game, mode }: Props) {
             score={gs.runner.agenda}
             color={runnerColor}
             fillFromTop={false}
-            onChange={d => {
-              update(s => ({
-                ...s,
-                runner: { ...s.runner, agenda: clamp(s.runner.agenda + d, -99, 99) },
-              }));
-              addLog('runner', d > 0 ? `Stole agenda +${d}` : `Agenda −${Math.abs(d)}`);
-            }}
+            max={gs.winTarget}
+            onChange={d => adjustStat('runner', 'agenda', d, 'Stole agenda', 'Agenda', -99, 99)}
           />
         )}
       </View>}
@@ -651,12 +632,20 @@ export function GameScreen({ game, mode }: Props) {
           onClose={() => setShowDice(false)}
         />
       )}
+      {showWinTarget && (
+        <WinTargetSheet
+          value={gs.winTarget}
+          onSet={setWinTarget}
+          onClose={() => setShowWinTarget(false)}
+        />
+      )}
       {gs.winner && (
         <WinOverlay
           winner={gs.winner}
           corpFaction={corpFaction}
           runnerFaction={runnerFaction}
           onReset={handleNewGame}
+          onKeepPlaying={handleKeepPlaying}
         />
       )}
     </View>

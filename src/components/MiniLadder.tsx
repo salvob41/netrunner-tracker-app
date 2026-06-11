@@ -3,6 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import { Icon } from './Icon';
 import { C, rgba } from '../theme';
 import { digits } from './DigitText';
+import { useBatchedDelta } from '../hooks/useBatchedDelta';
 
 const AGENDA_ICON = require('../assets/agenda.png');
 
@@ -13,14 +14,22 @@ interface Props {
   runnerColor: string;
   onCorpChange: (delta: number) => void;
   onRunnerChange: (delta: number) => void;
+  /** Agenda points needed to win = number of ladder segments. */
+  max?: number;
+  /** Tap the center agenda symbol to open the win-target picker. */
+  onOpenTarget?: () => void;
 }
-
-const MAX = 7;
 
 export function MiniLadder({
   corpScore, runnerScore, corpColor, runnerColor,
-  onCorpChange, onRunnerChange,
+  onCorpChange, onRunnerChange, max = 7, onOpenTarget,
 }: Props) {
+  const MAX = max;
+  // Batch rapid taps per side so a burst commits + logs once; scores update live.
+  const corp = useBatchedDelta(onCorpChange);
+  const runner = useBatchedDelta(onRunnerChange);
+  const dispCorp = corpScore + corp.pending;
+  const dispRunner = runnerScore + runner.pending;
   return (
     <View style={{
       flexShrink: 0, paddingVertical: 8, paddingHorizontal: 12,
@@ -33,7 +42,7 @@ export function MiniLadder({
           fontFamily: 'ShareTechMono_400Regular', fontSize: 14,
           fontWeight: '700', color: corpColor,
         }}>
-          {digits(corpScore)}
+          {digits(dispCorp)}
         </Text>
         <Text style={{
           fontSize: 7, letterSpacing: 1, color: rgba(corpColor, 0.5),
@@ -45,13 +54,13 @@ export function MiniLadder({
 
       {/* Corp bars — tap +1, long-press −1 */}
       <Pressable
-        onPress={() => onCorpChange(1)}
-        onLongPress={() => onCorpChange(-1)}
+        onPress={() => corp.bump(1)}
+        onLongPress={() => corp.bump(-1)}
         delayLongPress={400}
         style={{ flex: 1, flexDirection: 'row', gap: 3, alignItems: 'center' }}
       >
         {Array.from({ length: MAX }, (_, i) => {
-          const filled = i < corpScore;
+          const filled = i < dispCorp;
           return (
             <View
               key={`c${i}`}
@@ -66,17 +75,36 @@ export function MiniLadder({
         })}
       </Pressable>
 
-      <Icon source={AGENDA_ICON} size={11} color={rgba(C.gold, 0.6)} />
+      {/* Center agenda icon — tap to open the agenda-to-win picker.
+          zIndex keeps it above the flanking bar Pressables so taps land here
+          (on web the adjacent flex Pressables can otherwise swallow the tap). */}
+      <Pressable
+        onPress={() => onOpenTarget?.()}
+        style={{
+          alignItems: 'center', paddingHorizontal: 6, paddingVertical: 3,
+          borderRadius: 7, borderWidth: 1, borderColor: rgba(C.gold, 0.35),
+          backgroundColor: rgba(C.gold, 0.08),
+          zIndex: 10, elevation: 10,
+        }}
+      >
+        <Icon source={AGENDA_ICON} size={12} color={C.gold} />
+        <Text style={{
+          fontSize: 10, letterSpacing: 0.5, marginTop: 1,
+          color: C.gold, fontFamily: 'Rajdhani_700Bold',
+        }}>
+          {MAX}
+        </Text>
+      </Pressable>
 
       {/* Runner bars — fill from right toward center; tap +1, long-press −1 */}
       <Pressable
-        onPress={() => onRunnerChange(1)}
-        onLongPress={() => onRunnerChange(-1)}
+        onPress={() => runner.bump(1)}
+        onLongPress={() => runner.bump(-1)}
         delayLongPress={400}
         style={{ flex: 1, flexDirection: 'row', gap: 3, alignItems: 'center' }}
       >
         {Array.from({ length: MAX }, (_, i) => {
-          const filled = (MAX - 1 - i) < runnerScore;
+          const filled = (MAX - 1 - i) < dispRunner;
           return (
             <View
               key={`r${i}`}
@@ -96,7 +124,7 @@ export function MiniLadder({
           fontFamily: 'ShareTechMono_400Regular', fontSize: 14,
           fontWeight: '700', color: runnerColor,
         }}>
-          {digits(runnerScore)}
+          {digits(dispRunner)}
         </Text>
         <Text style={{
           fontSize: 7, letterSpacing: 1, color: rgba(runnerColor, 0.5),

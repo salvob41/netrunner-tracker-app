@@ -27,6 +27,12 @@ export function DiceMarkSheet({ onRollDie, onRollMark, onClose }: Props) {
   const resultOpacity = useRef(new Animated.Value(1)).current;
 
   const [result, setResult] = useState<{ label: string; value: string } | null>(null);
+  const [faces, setFaces] = useState(5);
+
+  const MIN_FACES = 2;
+  const MAX_FACES = 100;
+  const stepFaces = (d: number) =>
+    setFaces(n => Math.max(MIN_FACES, Math.min(MAX_FACES, n + d)));
 
   useEffect(() => {
     Animated.parallel([
@@ -51,9 +57,9 @@ export function DiceMarkSheet({ onRollDie, onRollMark, onClose }: Props) {
     ]).start();
   };
 
-  const handleDie = (kind: DieKind, sides: number) => {
+  const handleDie = (label: string, sides: number) => {
     const v = onRollDie(sides);
-    setResult({ label: kind, value: String(v) });
+    setResult({ label, value: String(v) });
     animateResult();
   };
 
@@ -172,6 +178,31 @@ export function DiceMarkSheet({ onRollDie, onRollMark, onClose }: Props) {
             />
           ))}
         </View>
+        {/* Custom face count — pick any number of sides, then roll */}
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 8,
+          paddingHorizontal: 16, paddingTop: 12,
+        }}>
+          <Text style={{
+            fontSize: 10, letterSpacing: 2, color: C.dim,
+            fontFamily: 'Rajdhani_700Bold',
+          }}>
+            FACES
+          </Text>
+          <StepBtn label="−" color={C.gold} onPress={() => stepFaces(-1)} />
+          <Text style={{
+            minWidth: 40, textAlign: 'center',
+            fontSize: 20, color: C.gold,
+            fontFamily: 'ShareTechMono_400Regular',
+          }}>
+            {faces}
+          </Text>
+          <StepBtn label="+" color={C.gold} onPress={() => stepFaces(1)} />
+          <View style={{ flex: 1 }}>
+            <RollBtn label={`ROLL d${faces}`} color={C.gold} onPress={() => handleDie(`d${faces}`, faces)} />
+          </View>
+        </View>
+
         <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
           <RollBtn label="MARK" color="#2fb8ff" wide onPress={handleMark} />
         </View>
@@ -204,6 +235,25 @@ function RollBtn({
         fontSize: 14, letterSpacing: 2,
         color, fontFamily: 'Rajdhani_700Bold',
       }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function StepBtn({ label, color, onPress }: { label: string; color: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPressIn={onPress}
+      hitSlop={6}
+      style={{
+        width: 34, height: 34, borderRadius: 8,
+        borderWidth: 1.5, borderColor: rgba(color, 0.35),
+        backgroundColor: rgba(color, 0.10),
+        alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <Text style={{ fontSize: 20, lineHeight: 22, color, fontFamily: 'Rajdhani_700Bold' }}>
         {label}
       </Text>
     </Pressable>

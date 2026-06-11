@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Faction, Atmosphere } from '../theme';
-import { makeInitialState, clamp, GameState, Mark } from '../state';
+import { makeInitialState, clamp, GameState, Mark, MIN_WIN_TARGET, MAX_WIN_TARGET } from '../state';
 
 interface UseGameStateProps {
   corpFaction: Faction;
@@ -14,6 +14,7 @@ export function useGameState({ corpFaction, runnerFaction, onReset, theme }: Use
   const [gs, setGs] = useState<GameState>(makeInitialState);
   const [showLog, setShowLog] = useState(false);
   const [showDice, setShowDice] = useState(false);
+  const [showWinTarget, setShowWinTarget] = useState(false);
   const [corpFlipped, setCorpFlipped] = useState(true);
   const [runnerFlipped, setRunnerFlipped] = useState(false);
 
@@ -31,14 +32,46 @@ export function useGameState({ corpFaction, runnerFaction, onReset, theme }: Use
     }));
   }, []);
 
+  /**
+   * Apply a net delta to a clamped numeric stat and log "Label ±n → result",
+   * so the log shows both the change and the value it landed on. Used by the
+   * batched chips/ladders (tags, bad pub, agenda, etc.).
+   */
+  const adjustStat = useCallback((
+    player: 'corp' | 'runner',
+    field: string,
+    d: number,
+    pos: string,
+    neg: string,
+    lo: number = 0,
+    hi: number = 99,
+  ) => {
+    setGs(prev => {
+      const side = prev[player] as unknown as Record<string, number>;
+      const next = clamp(side[field] + d, lo, hi);
+      const verb = d > 0 ? `${pos} +${d}` : `${neg} −${Math.abs(d)}`;
+      return {
+        ...prev,
+        [player]: { ...side, [field]: next },
+        log: [...prev.log, { round: prev.round, player, message: `${verb} → ${next}` }],
+      } as GameState;
+    });
+  }, []);
+
   // Check win condition after each agenda change
   useEffect(() => {
-    if (gs.corp.agenda >= 7 && !gs.winner) {
-      update(s => ({ ...s, winner: 'corp' }));
-    } else if (gs.runner.agenda >= 7 && !gs.winner) {
-      update(s => ({ ...s, winner: 'runner' }));
+    if (gs.winner) return;
+    const corpWin = gs.corp.agenda >= gs.winTarget;
+    const runnerWin = gs.runner.agenda >= gs.winTarget;
+    if (!corpWin && !runnerWin) {
+      // Both sides back below 7 → re-arm so a future win still triggers.
+      if (gs.winDismissed) update(s => ({ ...s, winDismissed: false }));
+      return;
     }
-  }, [gs.corp.agenda, gs.runner.agenda, gs.winner]);
+    if (gs.winDismissed) return; // player chose "Keep Playing" past this win
+    if (corpWin) update(s => ({ ...s, winner: 'corp' }));
+    else if (runnerWin) update(s => ({ ...s, winner: 'runner' }));
+  }, [gs.corp.agenda, gs.runner.agenda, gs.winner, gs.winDismissed, gs.winTarget]);
 
   const handleEndTurn = () => {
     corpCreditFlush.current();
@@ -93,6 +126,21 @@ export function useGameState({ corpFaction, runnerFaction, onReset, theme }: Use
       log: [...prev.log, { round: prev.round, player: 'game', message: `Mark: ${result}` }],
     }));
     return result;
+  }, []);
+
+  /** Set the agenda-to-win target to an absolute value (from the picker modal).
+   *  Clamped to [MIN_WIN_TARGET, MAX_WIN_TARGET]. */
+  const setWinTarget = useCallback((value: number) => {
+    setGs(prev => {
+      const next = clamp(value, MIN_WIN_TARGET, MAX_WIN_TARGET);
+      if (next === prev.winTarget) return prev;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      return {
+        ...prev,
+        winTarget: next,
+        log: [...prev.log, { round: prev.round, player: 'game', message: `Agenda to win: ${next}` }],
+      };
+    });
   }, []);
 
   /** Manually set the mark (no roll). Logs and replaces any existing mark. */
@@ -150,6 +198,17 @@ export function useGameState({ corpFaction, runnerFaction, onReset, theme }: Use
     onReset();
   };
 
+  /** Dismiss the win overlay and resume the current game (e.g. after a
+   *  mis-tap to 7). Suppresses the auto-win until agenda drops below 7 again. */
+  const handleKeepPlaying = () => {
+    update(s => ({
+      ...s,
+      winner: null,
+      winDismissed: true,
+      log: [...s.log, { round: s.round, player: 'game', message: 'Game continued' }],
+    }));
+  };
+
   const handleReset = () => {
     corpCreditFlush.current();
     runnerCreditFlush.current();
@@ -158,14 +217,15 @@ export function useGameState({ corpFaction, runnerFaction, onReset, theme }: Use
   };
 
   return {
-    gs, setGs, update, addLog,
+    gs, setGs, update, addLog, adjustStat,
     showLog, setShowLog,
     showDice, setShowDice,
+    showWinTarget, setShowWinTarget,
     corpFlipped, setCorpFlipped,
     runnerFlipped, setRunnerFlipped,
     corpCreditFlush, runnerCreditFlush,
-    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset,
-    rollDie, rollMark, setMark, clearMark,
+    handleEndTurn, handleCorpTokenTap, handleRunnerTokenTap, handleNewGame, handleReset, handleKeepPlaying,
+    rollDie, rollMark, setMark, clearMark, setWinTarget,
     corpColor, runnerColor, activeColor, handSize,
     corpFaction, runnerFaction, onReset, theme,
   };

@@ -8,9 +8,11 @@ interface Props {
   corpFaction: Faction | null;
   runnerFaction: Faction | null;
   onReset: () => void;
+  /** Dismiss the win and resume the current game (e.g. after a mis-tap). */
+  onKeepPlaying: () => void;
 }
 
-export function WinOverlay({ winner, corpFaction, runnerFaction, onReset }: Props) {
+export function WinOverlay({ winner, corpFaction, runnerFaction, onReset, onKeepPlaying }: Props) {
   const [hidden, setHidden] = useState(false);
   const isCorpWin = winner === 'corp';
   const faction = isCorpWin ? corpFaction : runnerFaction;
@@ -91,6 +93,18 @@ export function WinOverlay({ winner, corpFaction, runnerFaction, onReset }: Prop
         >
           <Text style={{ color: C.gold, fontFamily: 'Rajdhani_700Bold', fontSize: 13, letterSpacing: 2 }}>
             ⟳ NEW GAME
+          </Text>
+        </Pressable>
+        <Pressable
+          onPressIn={onKeepPlaying}
+          style={{
+            paddingVertical: 11, paddingHorizontal: 24, borderRadius: 8,
+            backgroundColor: rgba(color, 0.10),
+            borderWidth: 1, borderColor: rgba(color, 0.4),
+          }}
+        >
+          <Text style={{ color, fontFamily: 'Rajdhani_700Bold', fontSize: 12, letterSpacing: 2 }}>
+            ▶ KEEP PLAYING
           </Text>
         </Pressable>
         <Pressable

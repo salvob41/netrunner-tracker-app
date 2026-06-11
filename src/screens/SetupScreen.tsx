@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, ScrollView, useWindowDimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FactionGlyph } from '../components/FactionGlyph';
 import { CORP_FACTIONS, RUNNER_FACTIONS, Faction, PlayMode, C, rgba } from '../theme';
+
+// Static transparent fox (adaptive-icon foreground) — not the animated WebP.
+const FOX_LOGO = require('../assets/adaptive-icon.png');
 
 interface Props {
   onStart: (corp: Faction, runner: Faction, mode: PlayMode) => void;
@@ -113,9 +117,13 @@ export function SetupScreen({ onStart, bg }: Props) {
         gap: 8,
       }}>
         {/* Compact title */}
-        <View style={{ alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Image source={FOX_LOGO} style={{ width: 28, height: 28 }} contentFit="contain" />
           <Text style={{ fontSize: 16, fontWeight: '700', letterSpacing: 3, color: C.text, fontFamily: 'Rajdhani_700Bold' }}>
             TRACKSTER TAKA
+          </Text>
+          <Text style={{ fontSize: 9, letterSpacing: 1.5, color: C.dim, fontFamily: 'Rajdhani_600SemiBold' }}>
+            COMPANION APP
           </Text>
         </View>
 
@@ -199,17 +207,17 @@ export function SetupScreen({ onStart, bg }: Props) {
         paddingBottom: insets.bottom + 32,
       }}
     >
-      {/* Title block */}
-      <View style={{ alignItems: 'center', marginBottom: 24 }}>
-        <Text style={{ fontSize: 9, letterSpacing: 4, color: C.dim, fontFamily: 'Rajdhani_600SemiBold', marginBottom: 6 }}>
-          UNOFFICIAL
-        </Text>
-        <Text style={{ fontSize: 28, fontWeight: '700', letterSpacing: 3, color: C.text, fontFamily: 'Rajdhani_700Bold' }}>
-          TRACKSTER TAKA
-        </Text>
-        <Text style={{ fontSize: 11, letterSpacing: 2, color: C.dim, fontFamily: 'Rajdhani_600SemiBold' }}>
-          NETRUNNER
-        </Text>
+      {/* Title block — fox logo beside the title */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 24 }}>
+        <Image source={FOX_LOGO} style={{ width: 56, height: 56 }} contentFit="contain" />
+        <View>
+          <Text style={{ fontSize: 26, fontWeight: '700', letterSpacing: 3, color: C.text, fontFamily: 'Rajdhani_700Bold' }}>
+            TRACKSTER TAKA
+          </Text>
+          <Text style={{ fontSize: 11, letterSpacing: 2, color: C.dim, fontFamily: 'Rajdhani_600SemiBold' }}>
+            COMPANION APP
+          </Text>
+        </View>
       </View>
 
       {/* Mode toggle */}
