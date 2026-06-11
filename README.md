@@ -107,4 +107,14 @@ State lives in `state.ts` with no React imports — screens map state to widgets
 
 ## License
 
-Fan-made utility. Android: Netrunner is a trademark of Fantasy Flight Games / Null Signal Games.
+Code is licensed under the **Apache License 2.0** — see [LICENSE](./LICENSE)
+and [NOTICE.md](./NOTICE.md).
+
+Bundled third-party assets are **not** covered by Apache-2.0 and keep their own
+licenses: Null Signal Games icons under CC BY-ND 4.0, and the Flaticon icons
+(hand, fox app icon) under the Flaticon license. See [NOTICE.md](./NOTICE.md)
+for full attributions.
+
+Unofficial fan project — not affiliated with or endorsed by Null Signal Games,
+Fantasy Flight Games, or Wizards of the Coast. *Android: Netrunner* and related
+marks are trademarks of their respective owners.

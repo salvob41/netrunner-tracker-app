@@ -42,6 +42,19 @@ These icons are used unmodified (display tinting only) with attribution to
 Null Signal Games. They are **not** covered by this project's Apache-2.0 license
 and remain under CC BY-ND 4.0. Their inclusion does not imply NSG endorsement.
 
+### Flaticon icons
+
+- **Hand icon** — by Kalashnyk on Flaticon:
+  <https://www.flaticon.com/free-icon/five_9437501>
+- **App icon (animated fox)** — Fox animated icons created by Freepik on Flaticon:
+  <https://www.flaticon.com/free-animated-icons/fox>
+- The **Android adaptive icon stack** (foreground / background / monochrome) was
+  generated from the fox icon with [Icon Kitchen](https://icon.kitchen/).
+
+These are used under the [Flaticon license](https://www.flaticon.com/legal),
+which requires attribution to the author and Flaticon. They are not covered by
+this project's Apache-2.0 license.
+
 ## Fonts
 
 - **Rajdhani** and **Share Tech Mono** — licensed under the SIL Open Font
