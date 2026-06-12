@@ -2,7 +2,7 @@
   "expo": {
     "name": "Trackster Taka - Netrunner",
     "slug": "netrunner-tracker",
-    "version": "2.7.0",
+    "version": "2.8.0",
     "orientation": "default",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -17,7 +17,7 @@
         "monochromeImage": "./src/assets/adaptive-icon-monochrome.png"
       },
       "package": "io.github.salvob41.trackstertaka",
-      "versionCode": 11,
+      "versionCode": 12,
       "permissions": [
         "WAKE_LOCK",
         "VIBRATE"
